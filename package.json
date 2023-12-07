@@ -11,7 +11,13 @@
 		"@sveltejs/adapter-auto": "^2.0.0",
 		"@sveltejs/kit": "^1.27.4",
 		"svelte": "^4.2.7",
+		"tslib": "^2.6.2",
+		"typescript": "^5.3.2",
 		"vite": "^4.4.2"
 	},
-	"type": "module"
+	"type": "module",
+	"dependencies": {
+		"pixi-spine": "^4.0.4",
+		"pixi.js": "^7.3.2"
+	}
 }
