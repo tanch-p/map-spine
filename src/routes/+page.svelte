@@ -3,9 +3,11 @@
   import * as PIXI from "pixi.js";
   import { Spine } from "pixi-spine";
   import { onMount, onDestroy } from "svelte";
+  import { Map } from "$lib/objects/Map";
 
   let elemCanvas: HTMLCanvasElement;
   let app: PIXI.Application;
+  let mapContainer: PIXI.Container;
   let renderer: PIXI.Renderer;
   let mapData;
   let timeline;
@@ -32,36 +34,17 @@
     }
     console.log(mapData);
 
-    //initialise grids
-    const gridSize = 80; //px
-    const cols = mapData.mapData.map[0].length;
-    const rows = mapData.mapData.map.length;
-    const xAdjustment = 1200 / 2 - (cols / 2) * gridSize;
-    const yAdjustment = 800 / 2 - (rows / 2) * gridSize;
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols; j++) {
-        const frame = new PIXI.Graphics();
-        frame.lineStyle(2, 0xffffff, 1);
-        frame.drawRect(
-          j * gridSize + xAdjustment,
-          rows - i * gridSize + yAdjustment + 450,
-          gridSize,
-          gridSize
-        );
-        const texture = renderer.generateTexture(frame);
-        const sprite = new PIXI.Sprite(texture);
-        sprite.position.x = j * gridSize + xAdjustment;
-        sprite.position.y = rows - i * gridSize + yAdjustment + 450;
-        sprite.anchor.x = 0;
-        sprite.anchor.y = 0;
-        sprite.onclick = (event) => {
-          alert(`${i},${j}`);
-        };
-        sprite.eventMode = "static";
-        app.stage.addChild(sprite);
-        app.stage.addChild(frame);
-      }
-    }
+    mapContainer = new PIXI.Container();
+    const map = new Map({ container: mapContainer, mapData: mapData.mapData });
+    app.stage.addChild(mapContainer);
+
+    // Move container to the center
+    mapContainer.x = app.screen.width / 2;
+    mapContainer.y = app.screen.height / 2;
+
+    // Center sprite in local container coordinates
+    mapContainer.pivot.x = mapContainer.width / 2;
+    mapContainer.pivot.y = mapContainer.height / 2;
 
     PIXI.Assets.add({
       alias: "ucomm",
