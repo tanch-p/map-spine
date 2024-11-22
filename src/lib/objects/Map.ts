@@ -19,7 +19,7 @@ export class Map {
   }
 
   drawTile(cols: number, rows: number): void {
-    const gridSize = 80; //px
+    const gridSize = 40; //px
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         const frame = new PIXI.Graphics();

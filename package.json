@@ -10,6 +10,7 @@
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^2.0.0",
 		"@sveltejs/kit": "^1.27.4",
+		"@types/three": "^0.169.0",
 		"autoprefixer": "^10.4.16",
 		"postcss": "^8.4.32",
 		"svelte": "^4.2.7",
@@ -20,7 +21,9 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@esotericsoftware/spine-threejs": "^4.2.66",
 		"pixi-spine": "^4.0.4",
-		"pixi.js": "^7.3.2"
+		"pixi.js": "^7.3.2",
+		"three": "^0.170.0"
 	}
 }
