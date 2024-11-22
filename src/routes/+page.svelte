@@ -4,6 +4,7 @@
   import { Spine } from "pixi-spine";
   import { onMount, onDestroy } from "svelte";
   import { Map } from "$lib/objects/Map";
+  import { Interface } from "$lib/objects/Interface";
 
   let elemCanvas: HTMLCanvasElement;
   let app: PIXI.Application;
@@ -12,14 +13,15 @@
   let mapData;
   let timeline;
   let time = 0;
+  let action = "Idile";
 
   onMount(async () => {
     renderer = new PIXI.Renderer();
     app = new PIXI.Application({
       view: elemCanvas,
       // resizeTo: document.body,
-      width: 1200, // default: 800
-      height: 800, // default: 600
+      width: 900, // default: 800
+      height: 600, // default: 600
       backgroundColor: 0x141414,
     });
     if (!app) return;
@@ -32,10 +34,10 @@
       console.error(err);
       return;
     }
-    console.log(mapData);
+    // console.log(mapData);
 
     mapContainer = new PIXI.Container();
-    const map = new Map({ container: mapContainer, mapData: mapData.mapData });
+    // const map = new Map({ container: mapContainer, mapData: mapData.mapData });
     app.stage.addChild(mapContainer);
 
     // Move container to the center
@@ -49,17 +51,14 @@
     PIXI.Assets.add({
       alias: "ucomm",
       src: "/spine/enemy_1111_ucommd_2.skel",
-      data: { spineSkeletonScale: 0.2 },
+      data: { spineSkeletonScale: 1 },
     });
     const skel = await PIXI.Assets.load("ucomm");
     const unit = new Spine(skel.spineData);
-
-    unit.x = 0;
+    unit.x = app.screen.width / 2;
     unit.y = app.screen.height;
     app.stage.addChild(unit);
-    unit.scale.x = -1;
-    console.log(unit);
-
+    const ui = new Interface({ container: mapContainer, unit: unit });
     // add the animation to the scene and render...
     if (unit.state.hasAnimation("Move")) {
       // run forever, little boy!
@@ -67,18 +66,12 @@
       // update yourself
       unit.autoUpdate = true;
     }
-    setTimeout(() => {
-      unit.state.setAnimation(0, "Idile", true);
-    }, 3000);
     console.log(app.ticker.FPS);
-    app.ticker.add((delta) => {
-      // delta is 1 if running at 100% performance
-      // creates frame-independent transformation
-      unit.x += 1 * delta;
-    });
-    setTimeout(() => {
-      app.stop();
-    }, 10000);
+    // app.ticker.add((delta) => {
+    //   // delta is 1 if running at 100% performance
+    //   // creates frame-independent transformation
+    //   unit.x += 1 * delta;
+    // });
   });
   onDestroy(() => {
     // Helps memory leak issues
