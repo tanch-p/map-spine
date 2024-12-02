@@ -40,6 +40,7 @@ import { ThreeJsTexture } from "./ThreeJsTexture";
 import { ClippingAttachment } from "./attachments/ClippingAttachment";
 import type { VertexEffect } from "./VertexEffect";
 import { SkeletonData } from "./SkeletonData";
+import { BlendMode } from "./BlendMode";
 
 export interface SkeletonMeshMaterialParametersCustomizer {
   (materialParameters: THREE.ShaderMaterialParameters): void;

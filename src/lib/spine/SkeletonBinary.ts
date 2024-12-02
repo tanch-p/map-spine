@@ -41,6 +41,10 @@ import {
   DeformTimeline,
   DrawOrderTimeline,
   EventTimeline,
+  ColorTimeline,
+  TwoColorTimeline,
+  CurveTimeline,
+  Timeline,
 } from "./Animation";
 import { BoneData, TransformMode } from "./BoneData.js";
 import { Event } from "./Event.js";
@@ -59,6 +63,10 @@ import { SlotData } from "./SlotData.js";
 import { TransformConstraintData } from "./TransformConstraintData.js";
 import { Color, Utils } from "./Utils.js";
 import { AttachmentType } from "./attachments/AttachmentType";
+import { AtlasAttachmentLoader } from "./AtlasAttachmentLoader";
+import type { AttachmentLoader } from "./attachments/AttachmentLoader";
+import { VertexAttachment } from "./attachments/Attachment";
+import { MeshAttachment } from "./attachments/MeshAttachment";
 /** Loads skeleton data in the Spine binary format.
  *
  * See [Spine binary format](http://esotericsoftware.com/spine-binary-format) and
@@ -119,7 +127,7 @@ export class SkeletonBinary {
    * See [Scaling](http://esotericsoftware.com/spine-loading-skeleton-data#Scaling) in the Spine Runtimes Guide. */
   scale = 1;
 
-  attachmentLoader: AttachmentLoader;
+  attachmentLoader: AtlasAttachmentLoader;
   private linkedMeshes = new Array<LinkedMesh>();
 
   constructor(attachmentLoader: AttachmentLoader) {
