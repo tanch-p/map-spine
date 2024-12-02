@@ -23,7 +23,6 @@
 	"dependencies": {
 		"@esotericsoftware/spine-threejs": "^4.2.66",
 		"pixi-spine": "^4.0.4",
-		"pixi.js": "^7.3.2",
-		"three": "^0.170.0"
+		"three": "0.141.0"
 	}
 }
