@@ -26,7 +26,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
-import { FakeTexture,Texture } from "./Texture.js";
+import { FakeTexture, Texture } from "./Texture.js";
 import { TextureAtlas } from "./TextureAtlas.js";
 import { ThreeJsTexture } from "./ThreeJsTexture.js";
 export class AssetManager {
@@ -51,6 +51,18 @@ export class AssetManager {
     success: (data: string) => void,
     error: (status: number, responseText: string) => void
   ) {
+    // try {
+    //   fetch(url)
+    //     .then((response) => {
+    //       if (!response.ok) {
+    //         throw new Error(`HTTP error, status = ${response.status}`);
+    //       }
+    //       return response.text();
+    //     })
+    //     .then((text) => success(text));
+    // } catch (e) {
+    //   error(404, "error");
+    // }
     let request = new XMLHttpRequest();
     request.overrideMimeType("text/html");
     if (this.rawDataUris[url]) url = this.rawDataUris[url];
@@ -73,6 +85,18 @@ export class AssetManager {
     success: (data: Uint8Array) => void,
     error: (status: number, responseText: string) => void
   ) {
+    // try {
+    //   fetch(url)
+    //     .then((response) => {
+    //       if (!response.ok) {
+    //         throw new Error(`HTTP error, status = ${response.status}`);
+    //       }
+    //       return response.arrayBuffer();
+    //     })
+    //     .then((data) => success(new Uint8Array(data)));
+    // } catch (e) {
+    //   error(404, "error");
+    // }
     let request = new XMLHttpRequest();
     if (this.rawDataUris[url]) url = this.rawDataUris[url];
     request.open("GET", url, true);
@@ -115,10 +139,7 @@ export class AssetManager {
           path
         ] = `Couldn't load binary ${path}: status ${status}, ${responseText}`;
         if (error)
-          error(
-            path,
-            `Couldn't load binary ${path}: status ${status}, ${responseText}`
-          );
+          error(path, `Couldn't load binary ${path}: status ${status}, ${responseText}`);
         this.toLoad--;
         this.loaded++;
       }
@@ -289,11 +310,11 @@ export class AssetManager {
       (state: number, responseText: string): void => {
         this.errors[
           path
-        ] = `Couldn't load texture atlas ${path}: status ${status}, ${responseText}`;
+        ] = `Couldn't load texture atlas ${path}: status , ${responseText}`;
         if (error)
           error(
             path,
-            `Couldn't load texture atlas ${path}: status ${status}, ${responseText}`
+            `Couldn't load texture atlas ${path}: status , ${responseText}`
           );
         this.toLoad--;
         this.loaded++;

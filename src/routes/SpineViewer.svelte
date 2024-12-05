@@ -1,119 +1,189 @@
 <script lang="ts">
-  import { spine } from "$lib/spine-runtimes/spine-ts/build/spine-threejs";
   import { onMount } from "svelte";
+  import * as THREE from "three";
+  import * as spine from "$lib/spine";
+  import mapConfig from "$lib/data/level_rogue3_b-5.json";
+  import { MapGrids } from "$lib/components/MapGrids";
 
-  let scene, camera, renderer;
-  let geometry, material, mesh, skeletonMesh;
-  let assetManager;
-  let canvas;
-  let controls;
-  let lastFrameTime = Date.now() / 1000;
+  let canvasElement: HTMLCanvasElement;
+  let scene: THREE.Scene;
+  let camera: THREE.PerspectiveCamera;
+  let renderer: THREE.WebGLRenderer;
+  let raycaster: THREE.raycaster;
+  let pointer: THREE.Vector2;
+  let assetManager: spine.AssetManager;
 
-  let baseUrl = "spine/";
-  let skeletonFile = "enemy_1111_ucommd_2.skel";
-  let atlasFile = "enemy_1111_ucommd_2.atlas";
-  let animation = "Idile";
+  let mesh, skeletonMesh;
+  var lastFrameTime = Date.now() / 1000;
 
-  let loader = new TextureLoader();
+  const objects = [];
 
-  function init() {
-    // create the THREE.JS camera, scene and renderer (WebGL)
-    let width = window.innerWidth,
-      height = window.innerHeight;
-    camera = new PerspectiveCamera(75, width / height, 1, 3000);
-    camera.position.y = 100;
+  onMount(() => {
+    // Create scene
+    scene = new THREE.Scene();
+    raycaster = new THREE.Raycaster();
+    pointer = new THREE.Vector2();
+
+    // Create camera with adjusted position and rotation
+    camera = new THREE.PerspectiveCamera(
+      75, // field of view
+      4 / 3, // aspect ratio
+      0.1, // near clipping plane
+      1000 // far clipping plane
+    );
+
+    // Position and rotate the camera to create a trapezium-like view
+
+    // Position camera to view XY plane from an angle
+    camera.position.y = 0;
     camera.position.z = 400;
-    scene = new Scene();
-    renderer = new WebGLRenderer();
-    renderer.setSize(width, height);
-    document.body.appendChild(renderer.domElement);
-    canvas = renderer.domElement;
+    // camera.rotation.x = 0.194; // Tilt up slightly
 
-    assetManager = new spine.AssetManager(loader,baseUrl);
+    // Create renderer
+    renderer = new THREE.WebGLRenderer({
+      canvas: canvasElement,
+      antialias: true, // Optional: smoother edges
+      alpha: true,
+    });
+    renderer.setClearColor(0x0000, 1);
+    renderer.setSize(800, 600);
+
+    // The X axis is red. The Y axis is green. The Z axis is blue.
+    const axesHelper = new THREE.AxesHelper(50);
+    axesHelper.position.x = 350;
+    axesHelper.position.y = -250;
+    axesHelper.position.z = 0;
+
+    scene.add(axesHelper);
+
+    const gridRows = mapConfig.mapData.map.length;
+    const gridCols = mapConfig.mapData.map[0].length;
+    // Optional: Add a grid to help visualize perspective
+    const gridHelper = new MapGrids(
+      gridCols * 60,
+      gridRows * 60,
+      gridCols,
+      gridRows
+    );
+    // gridHelper.rotation.x = Math.PI / 2;
+    scene.add(gridHelper);
+
+    //! spine here
+    assetManager = new spine.AssetManager("/spine/");
     assetManager.loadBinary("enemy_1111_ucommd_2.skel");
     assetManager.loadTextureAtlas("enemy_1111_ucommd_2.atlas");
-    
+    document.addEventListener("mousemove", onPointerMove);
+    document.addEventListener("mousedown", onPointerDown);
+
     requestAnimationFrame(load);
-  }
-  function load(name, scale) {
-    if (assetManager.isLoadingComplete()) {
-      // Add a box to the scene to which we attach the skeleton mesh
-      geometry = new BoxGeometry(200, 200, 200);
-      material = new MeshBasicMaterial({
-        color: 0xff0000,
-        wireframe: true,
-      });
-      mesh = new Mesh(geometry, material);
-      scene.add(mesh);
 
-      // Load the texture atlas using name.atlas and name.png from the AssetManager.
-      // The function passed to TextureAtlas is used to resolve relative paths.
-      const atlas = assetManager.get(atlasFile);
+    function load(name, scale) {
+      if (assetManager.isLoadingComplete()) {
+        // Add a box to the scene to which we attach the skeleton mesh
+        let spineMeshGeometry = new THREE.BoxGeometry(50, 50, 50);
+        let spineMeshMaterial = new THREE.MeshBasicMaterial({
+          color: 0xff0000,
+          // wireframe: true,
+          visible: false,
+        });
+        mesh = new THREE.Mesh(spineMeshGeometry, spineMeshMaterial);
+        scene.add(mesh);
+        objects.push(mesh);
 
-      // Create a AtlasAttachmentLoader that resolves region, mesh, boundingbox and path attachments
-      const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
+        // Load the texture atlas using name.atlas and name.png from the AssetManager.
+        // The function passed to TextureAtlas is used to resolve relative paths.
+        const atlas = assetManager.get("enemy_1111_ucommd_2.atlas");
+        // Create a AtlasAttachmentLoader that resolves region, mesh, boundingbox and path attachments
+        const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
 
-      // Create a SkeletonJson instance for parsing the .json file.
-      console.log(atlasLoader);
-      let skeletonJson = new spine.SkeletonBinary(atlasLoader);
+        // Create a SkeletonJson instance for parsing the .json file.
+        let skeletonBinary = new spine.SkeletonBinary(atlasLoader);
 
-      // Set the scale to apply during parsing, parse the file, and create a new skeleton.
-      skeletonJson.scale = 0.4;
-      let skeletonData = skeletonJson.readSkeletonData(
-        assetManager.get(skeletonFile)
-      );
+        // Set the scale to apply during parsing, parse the file, and create a new skeleton.
+        skeletonBinary.scale = 0.4;
+        let skeletonData = skeletonBinary.readSkeletonData(
+          assetManager.get("enemy_1111_ucommd_2.skel")
+        );
 
-      // Create a SkeletonMesh from the data and attach it to the scene
-      skeletonMesh = new spine.SkeletonMesh(skeletonData, (parameters) => {
-        parameters.depthTest = true;
-        parameters.depthWrite = true;
-        parameters.alphaTest = 0.001;
-      });
-      skeletonMesh.state.setAnimation(0, animation, true);
-      mesh.add(skeletonMesh);
+        // Create a SkeletonMesh from the data and attach it to the scene
+        skeletonMesh = new spine.SkeletonMesh(skeletonData, (parameters) => {
+          parameters.depthTest = true;
+          parameters.depthWrite = true;
+          parameters.alphaTest = 0.001;
+        });
 
-      requestAnimationFrame(render);
-    } else requestAnimationFrame(load);
-  }
-
-  let lastTime = Date.now();
-  function render() {
-    // calculate delta time for animation purposes
-    let now = Date.now() / 1000;
-    let delta = now - lastFrameTime;
-    lastFrameTime = now;
-
-    // resize canvas to use full page, adjust camera/renderer
-    resize();
-
-    // Update orbital controls
-    controls.update();
-
-    // update the animation
-    skeletonMesh.update(delta);
-
-    // render the scene
-    renderer.render(scene, camera);
-
-    requestAnimationFrame(render);
-  }
-
-  function resize() {
-    let w = window.innerWidth;
-    let h = window.innerHeight;
-    if (canvas.width != w || canvas.height != h) {
-      canvas.width = w;
-      canvas.height = h;
+        skeletonMesh.state.setAnimation(0, "Move", true);
+        mesh.add(skeletonMesh);
+        mesh.position.x = -100;
+        renderer.setAnimationLoop(render);
+      } else requestAnimationFrame(load);
     }
 
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
+    // Animation function to potentially add subtle movement
+    function render(): void {
+      // calculate delta time for animation purposes
+      var now = Date.now() / 1000;
+      var delta = now - lastFrameTime;
+      lastFrameTime = now;
+      skeletonMesh.update(delta);
 
-    renderer.setSize(w, h);
-  }
-  onMount(() => {
-    init();
+      mesh.position.x += 0.1;
+      renderer.render(scene, camera);
+    }
+    function onPointerMove(event) {
+      pointer.set(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / 600) * 2 + 1
+      );
+      // console.log(pointer);
+      raycaster.setFromCamera(pointer, camera);
+
+      const intersects = raycaster.intersectObjects(objects, false);
+      if (intersects.length > 0) {
+        // console.log(intersects);
+        //   const intersect = intersects[0];
+        //   rollOverMesh.position.copy(intersect.point).add(intersect.face.normal);
+        //   render();
+      }
+    }
+    function onPointerDown(event) {
+      pointer.set(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / 600) * 2 + 1
+      );
+      raycaster.setFromCamera(pointer, camera);
+      const intersects = raycaster.intersectObjects(objects, false);
+
+      if (intersects.length > 0) {
+        const intersect = intersects[0];
+        // console.log("hi");
+      }
+    }
+
+    // Handle window resizing
+    const handleResize = (): void => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      renderer.dispose();
+    };
   });
 </script>
 
-<canvas id="canvas"></canvas>
+<canvas bind:this={canvasElement}></canvas>
+
+<style>
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    margin: 0 auto;
+  }
+</style>
