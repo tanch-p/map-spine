@@ -2,15 +2,16 @@
   import { onMount } from "svelte";
   import * as THREE from "three";
   import * as spine from "$lib/spine";
+  import { setPosition } from "$lib/functions/lib";
 
   // export let canvasElement: HTMLCanvasElement;
 
   let camera: THREE.PerspectiveCamera,
     scene: THREE.Scene,
     renderer: THREE.WebGLRenderer;
-  let plane;
+  let plane: THREE.Plane;
   let pointer,
-    raycaster,
+    raycaster: THREE.Raycaster,
     isShiftDown = false;
 
   let rollOverMesh, rollOverMaterial;
@@ -119,14 +120,14 @@
   function load() {
     if (assetManager.isLoadingComplete()) {
       // Add a box to the scene to which we attach the skeleton mesh
-      let spineMeshGeometry = new THREE.BoxGeometry(50, 50, 50);
+      let spineMeshGeometry = new THREE.CircleGeometry(25, 32);
       let spineMeshMaterial = new THREE.MeshBasicMaterial({
-        color: 0xff0000,
+        color: 0x666666,
         // wireframe: true,
-        visible: false,
+        visible: true,
       });
-      console.log(assetManager);
       mesh = new THREE.Mesh(spineMeshGeometry, spineMeshMaterial);
+      setPosition(mesh, [19, 19]);
       scene.add(mesh);
       // Load the texture atlas using name.atlas and name.png from the AssetManager.
       // The function passed to TextureAtlas is used to resolve relative paths.
@@ -199,29 +200,29 @@
 
     if (intersects.length > 0) {
       const intersect = intersects[0];
-
+      console.log(intersect.point);
       // delete cube
 
-      // if (isShiftDown) {
-      //   if (intersect.object !== plane) {
-      //     scene.remove(intersect.object);
+      if (isShiftDown) {
+        if (intersect.object !== plane) {
+          scene.remove(intersect.object);
 
-      //     objects.splice(objects.indexOf(intersect.object), 1);
-      //   }
+          objects.splice(objects.indexOf(intersect.object), 1);
+        }
 
-      //   // create cube
-      // } else {
-      //   const voxel = new THREE.Mesh(cubeGeo, cubeMaterial);
-      //   voxel.position.copy(intersect.point).add(intersect.face.normal);
-      //   voxel.position
-      //     .divideScalar(50)
-      //     .floor()
-      //     .multiplyScalar(50)
-      //     .addScalar(25);
-      //   scene.add(voxel);
+        // create cube
+      } else {
+        const voxel = new THREE.Mesh(cubeGeo, cubeMaterial);
+        voxel.position.copy(intersect.point).add(intersect.face.normal);
+        voxel.position
+          .divideScalar(50)
+          .floor()
+          .multiplyScalar(50)
+          .addScalar(25);
+        scene.add(voxel);
 
-      //   objects.push(voxel);
-      // }
+        objects.push(voxel);
+      }
 
       // render();
     }
