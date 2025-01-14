@@ -1,3 +1,10 @@
+<script lang="ts">
+import { onMount } from "svelte";
+  import * as THREE from "three";
+  import * as spine from "$lib/spine";
+  
+</script>
+
 let stage: StageScene;
   let assetManager: spine.AssetManager;
   let mesh, skeletonMesh;

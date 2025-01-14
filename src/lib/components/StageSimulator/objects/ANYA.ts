@@ -246,16 +246,3 @@ class TrueANYA {
         return path;
     }
 }
-
-// Example usage:
-const grid = [
-    [0, 0, 0, 1, 0],
-    [1, 0, 0, 0, 0],
-    [0, 0, 1, 0, 0],
-    [0, 1, 0, 0, 0],
-    [0, 0, 0, 1, 0]
-];
-
-const pathfinder = new TrueANYA(grid);
-const path = pathfinder.findPath(0, 0, 4, 4);
-console.log(path);

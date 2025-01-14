@@ -52,7 +52,8 @@ const getCoordinate = (coordinate, center, gridSize) => {
   return (coordinate - center) * gridSize + gridSize / 2;
 };
 
-export const getNormalPos = (coordinate, center, gridSize, type = "x") => {
+export const getNormalPos = (coordinate, mazeLayout, gridSize, type = "x") => {
+  const center = type === "x" ? mazeLayout[0].length /2 : mazeLayout.length/2;
   if (coordinate === center) {
     if (center % 2 === 0) {
       return gridSize / 2;
@@ -73,7 +74,7 @@ export const convertMovementConfig = (config, mazeLayout) => {
   };
   const end = {
     row: height - 1 - config.endPosition.row,
-    col: config.startPosition.col,
+    col: config.endPosition.col,
   };
   const checkpoints = [...config.checkpoints];
   for (const checkpoint of checkpoints) {

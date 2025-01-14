@@ -5,7 +5,6 @@
   import mapConfig from "$lib/data/level_rogue3_b-5.json";
   import { MapGrids } from "$lib/components/MapGrids";
   import MazeGame from "$lib/components/MazeGame/index.svelte"
-  import { StageScene } from "$lib/components/StageSimulator/objects/StageScene";
   import VoxelPainter from "$lib/components/VoxelPainter/index.svelte";
   import StageSim from "$lib/components/StageSim/index.svelte";
 

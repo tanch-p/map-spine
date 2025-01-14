@@ -122,6 +122,7 @@
       this.mazeHeight = mazeLayout.length;
       this.mazeWidth = mazeLayout[0].length;
       this.detailedPath = [];
+      this.waypointMarkers = [];
 
       // Three.js specific properties
       this.bot = bot;
@@ -142,6 +143,7 @@
       this.targetPos = new THREE.Vector3(endPos.posX, endPos.posY, 0);
 
       this.calculatePath();
+      this.visualizePath();
     }
 
     calculatePath() {
@@ -151,13 +153,11 @@
         ...this.config.checkpoints.map((cp) => cp.position),
         this.config.endPosition,
       ];
-
       // Calculate path between each consecutive waypoint using Theta* algorithm
       for (let i = 0; i < waypoints.length - 1; i++) {
         const start = waypoints[i];
         const end = waypoints[i + 1];
         const pathSegment = this.findPathTheta(start, end);
-        console.log(pathSegment);
         if (pathSegment) {
           this.detailedPath.push(
             ...(i === 0 ? pathSegment : pathSegment.slice(1))
@@ -173,7 +173,6 @@
       const cameFrom = new Map();
       const gScore = new Map();
       const fScore = new Map();
-
       const startKey = `${start.row},${start.col}`;
       openSet.add(startKey);
       gScore.set(startKey, 0);
@@ -201,15 +200,18 @@
         openSet.delete(current);
         closedSet.add(current);
 
-        // Get neighbors with any-angle pathfinding
-        const neighbors = this.getNeighbors(currentRow, currentCol);
+        // Get neighbors including intermediate points
+        const neighbors = this.getExpandedNeighbors(
+          currentRow,
+          currentCol,
+          end
+        );
 
         for (const neighbor of neighbors) {
           const neighborKey = `${neighbor.row},${neighbor.col}`;
 
           if (closedSet.has(neighborKey)) continue;
 
-          // Check line of sight from parent
           const parent = cameFrom.get(current);
           let parentPos = currentPos;
 
@@ -218,7 +220,11 @@
             parentPos = { row: parentRow, col: parentCol };
           }
 
-          // If we have line of sight to parent, use that path instead
+          // Prefer straight-line movements when possible
+          const isVerticalMove = neighbor.col === currentPos.col;
+          const isHorizontalMove = neighbor.row === currentPos.row;
+          const movementPenalty = isVerticalMove || isHorizontalMove ? 0.8 : 1;
+
           const useParentPath =
             parent && this.hasLineOfSight(parentPos, neighbor);
           const pathParent = useParentPath ? parent : current;
@@ -226,7 +232,7 @@
 
           const tentativeGScore =
             gScore.get(pathParent) +
-            this.getEuclideanDistance(pathStartPos, neighbor);
+            this.getEuclideanDistance(pathStartPos, neighbor) * movementPenalty;
 
           if (!openSet.has(neighborKey)) {
             openSet.add(neighborKey);
@@ -247,41 +253,65 @@
     }
 
     hasLineOfSight(start, end) {
-      // Bresenham's line algorithm with cell checking
       const points = this.getLinePoints(start, end);
+      // Check each point along the line
+      for (let i = 0; i < points.length - 1; i++) {
+        const current = points[i];
+        const next = points[i + 1];
 
-      for (const point of points) {
-        // Check if point is inside a wall
+        // Check current point
         if (
-          this.mazeLayout[Math.floor(point.row)][Math.floor(point.col)] === 1
+          this.mazeLayout[Math.round(current.row + 0.2)][
+            Math.round(current.col + 0.2)
+          ] === 1
         ) {
           return false;
         }
 
-        // Check diagonal wall cutting
-        if (
-          Math.floor(point.row) !== point.row ||
-          Math.floor(point.col) !== point.col
-        ) {
-          const r1 = Math.floor(point.row);
-          const r2 = Math.ceil(point.row);
-          const c1 = Math.floor(point.col);
-          const c2 = Math.ceil(point.col);
+        // Check for diagonal wall cutting between current and next point
+        const minRow = Math.min(
+          Math.round(current.row + 0.2),
+          Math.round(next.row + 0.2)
+        );
+        const maxRow = Math.max(
+          Math.round(current.row + 0.2),
+          Math.round(next.row + 0.2)
+        );
+        const minCol = Math.min(
+          Math.round(current.col + 0.2),
+          Math.round(next.col + 0.2)
+        );
+        const maxCol = Math.max(
+          Math.round(current.col + 0.2),
+          Math.round(next.col + 0.2)
+        );
 
-          if (this.mazeLayout[r1][c1] === 1 && this.mazeLayout[r2][c2] === 1) {
+        // If moving diagonally, check both adjacent cells
+        if (minRow !== maxRow && minCol !== maxCol) {
+          if (
+            this.mazeLayout[minRow][maxCol] === 1 ||
+            this.mazeLayout[maxRow][minCol] === 1
+          ) {
             return false;
           }
         }
       }
 
-      return true;
+      // Check final point
+      const lastPoint = points[points.length - 1];
+      return (
+        this.mazeLayout[Math.floor(lastPoint.row)][
+          Math.floor(lastPoint.col)
+        ] !== 1
+      );
     }
 
     getLinePoints(start, end) {
       const points = [];
+      // Increase the number of points checked along the line
       const steps =
         Math.max(Math.abs(end.row - start.row), Math.abs(end.col - start.col)) *
-        2;
+        4; // Increased from 2 to 4 for more precise checking
 
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
@@ -293,16 +323,34 @@
 
       return points;
     }
+    getExpandedNeighbors(row, col, end) {
+      const neighbors = this.getNeighbors(row, col);
 
-    getEuclideanDistance(a, b) {
-      const dRow = a.row - b.row;
-      const dCol = a.col - b.col;
-      return Math.sqrt(dRow * dRow + dCol * dCol);
+      // Add intermediate points for better path options
+      const verticalDiff = end.row - row;
+      const horizontalDiff = end.col - col;
+
+      // If we're at the right height for a horizontal move to the end
+      if (Math.abs(verticalDiff) <= 1) {
+        const intermediateCol = Math.floor((col + end.col) / 2);
+        if (this.isValidPosition(row, intermediateCol)) {
+          neighbors.push({ row, col: intermediateCol });
+        }
+      }
+
+      // If we're at the right column for a vertical move to the end
+      if (Math.abs(horizontalDiff) <= 1) {
+        const intermediateRow = Math.floor((row + end.row) / 2);
+        if (this.isValidPosition(intermediateRow, col)) {
+          neighbors.push({ row: intermediateRow, col });
+        }
+      }
+
+      return neighbors;
     }
 
     getNeighbors(row, col) {
       const neighbors = [];
-      // Include more directions for smoother paths
       const directions = [
         [-1, -1],
         [-1, 0],
@@ -331,19 +379,45 @@
           continue;
         }
 
+        // Additional check for diagonal movement
+        if (Math.abs(dRow) === 1 && Math.abs(dCol) === 1) {
+          // Check both adjacent cells when moving diagonally
+          if (
+            this.mazeLayout[row][newCol] === 1 ||
+            this.mazeLayout[newRow][col] === 1
+          ) {
+            continue;
+          }
+        }
+
         neighbors.push({ row: newRow, col: newCol });
       }
 
       return neighbors;
     }
+
+    getEuclideanDistance(a, b) {
+      const dRow = a.row - b.row;
+      const dCol = a.col - b.col;
+      return Math.sqrt(dRow * dRow + dCol * dCol);
+    }
+    isValidPosition(row, col) {
+      return (
+        row >= 0 &&
+        row < this.mazeHeight &&
+        col >= 0 &&
+        col < this.mazeWidth &&
+        this.mazeLayout[row][col] !== 1
+      );
+    }
+
     heuristic(a, b) {
-      if (this.config.allowDiagonalMove) {
-        // Chebyshev distance for diagonal movement
-        return Math.max(Math.abs(a.row - b.row), Math.abs(a.col - b.col));
-      } else {
-        // Manhattan distance for non-diagonal movement
-        return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
-      }
+      // Modified heuristic to prefer straight-line movements
+      const dRow = Math.abs(a.row - b.row);
+      const dCol = Math.abs(a.col - b.col);
+      const straight = Math.abs(dRow - dCol);
+      const diagonal = Math.min(dRow, dCol);
+      return straight + diagonal * 1.1; // Slight penalty for diagonal movement
     }
 
     reconstructPath(cameFrom, current) {
@@ -361,6 +435,81 @@
       return path;
     }
 
+    visualizePath() {
+      // Remove existing path visualization if any
+      if (this.pathLine) {
+        scene.remove(this.pathLine);
+      }
+      this.waypointMarkers.forEach((marker) => scene.remove(marker));
+      this.waypointMarkers = [];
+
+      // Create path line
+      const points = this.detailedPath.map((pos) => {
+        return new THREE.Vector3(
+          getNormalPos(pos.col, this.mazeLayout, gridSize, "x"),
+          getNormalPos(pos.row, this.mazeLayout, gridSize, "y"),
+          0.2
+        );
+      });
+
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const material = new THREE.LineBasicMaterial({
+        color: 0x00ff00,
+        linewidth: 2,
+      });
+      this.pathLine = new THREE.Line(geometry, material);
+      scene.add(this.pathLine);
+
+      // Add waypoint markers
+      const waypointGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+      const waypointMaterial = new THREE.MeshPhongMaterial({ color: 0xffff00 });
+
+      // Checkpoints
+      this.config.checkpoints.forEach((checkpoint) => {
+        const marker = new THREE.Mesh(waypointGeometry, waypointMaterial);
+        marker.position.set(
+          getNormalPos(checkpoint.position.col, this.mazeLayout, gridSize, "x"),
+          getNormalPos(checkpoint.position.row, this.mazeLayout, gridSize, "y"),
+          0.2
+        );
+        this.waypointMarkers.push(marker);
+        scene.add(marker);
+      });
+
+      // Add progress line
+      this.updateProgressLine();
+    }
+
+    updateProgressLine() {
+      // Remove existing progress line if any
+      if (this.progressLine) {
+        scene.remove(this.progressLine);
+      }
+
+      // Create progress line (showing completed path)
+      const progressPoints = this.detailedPath
+        .slice(0, this.currentPathIndex + 1)
+        .map((pos) => {
+          return new THREE.Vector3(
+            getNormalPos(pos.col, this.mazeLayout, gridSize, "x"),
+            getNormalPos(pos.row, this.mazeLayout, gridSize, "y"),
+            0.2
+          );
+        });
+
+      if (progressPoints.length > 1) {
+        const geometry = new THREE.BufferGeometry().setFromPoints(
+          progressPoints
+        );
+        const material = new THREE.LineBasicMaterial({
+          color: 0x0000ff,
+          linewidth: 3,
+        });
+        this.progressLine = new THREE.Line(geometry, material);
+        scene.add(this.progressLine);
+      }
+    }
+
     moveObject() {
       if (this.currentPathIndex >= this.detailedPath.length - 1) {
         this.isMoving = false;
@@ -373,13 +522,13 @@
       // Convert maze indices to world coordinates
       const targetX = getNormalPos(
         nextPathPos.col,
-        this.mazeLayout[0].length / 2,
+        this.mazeLayout,
         this.gridSize,
         "x"
       );
       const targetY = getNormalPos(
         nextPathPos.row,
-        this.mazeLayout.length / 2,
+        this.mazeLayout,
         this.gridSize,
         "y"
       );
@@ -389,11 +538,11 @@
       const dy = targetY - this.bot.position.y;
 
       const distance = Math.sqrt(dx * dx + dy * dy);
-      const speed = 1.5;
+      const speed = 5;
 
       if (distance < speed) {
         this.currentPathIndex++;
-        // this.updateProgressLine();
+        this.updateProgressLine();
       } else {
         // Move towards target position
         this.bot.position.x += (dx / distance) * speed;
@@ -433,7 +582,7 @@
   let mesh, skeletonMesh: spine.SkeletonMesh;
   let lastFrameTime = Date.now() / 1000;
   let gridSize = 100;
-
+  let timerText;
   const objects = [];
 
   onMount(() => {
@@ -447,9 +596,9 @@
       0.1,
       1000
     );
-    camera.position.set(0, 0, 800);
+    camera.position.set(0, -150, 800);
     camera.lookAt(0, 0, 0);
-    // camera.rotation.x = 0.194; // Tilt up slightly
+    camera.rotation.x = 0.194; // Tilt up slightly
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
@@ -500,7 +649,7 @@
 
     plane = new THREE.Mesh(
       geometry,
-      new THREE.MeshBasicMaterial({ visible: true })
+      new THREE.MeshBasicMaterial({ visible: false })
     );
     scene.add(plane);
     addWalls(mazeLayout);
@@ -525,7 +674,7 @@
     document.body.appendChild(renderer.domElement);
 
     // document.addEventListener("pointermove", onPointerMove);
-    // document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("pointerdown", onPointerDown);
     // document.addEventListener("keydown", onDocumentKeyDown);
     // document.addEventListener("keyup", onDocumentKeyUp);
 
@@ -560,6 +709,7 @@
         gridSize
       );
       scene.add(mesh);
+      objects.push(mesh);
       // Load the texture atlas using name.atlas and name.png from the AssetManager.
       // The function passed to TextureAtlas is used to resolve relative paths.
       const atlas = assetManager.get("enemy_1111_ucommd_2.atlas");
@@ -576,8 +726,7 @@
 
       // Create a SkeletonMesh from the data and attach it to the scene
       skeletonMesh = new spine.SkeletonMesh(skeletonData, (parameters) => {
-        parameters.depthTest = true;
-        parameters.depthWrite = true;
+        parameters.depthTest = false;
         parameters.alphaTest = 0.001;
       });
       mesh.add(skeletonMesh);
@@ -647,49 +796,13 @@
     if (intersects.length > 0) {
       const intersect = intersects[0];
       console.log(intersect.point);
-      // delete cube
-
-      if (isShiftDown) {
-        if (intersect.object !== plane) {
-          scene.remove(intersect.object);
-
-          objects.splice(objects.indexOf(intersect.object), 1);
-        }
-
-        // create cube
-      } else {
-        const voxel = new THREE.Mesh(cubeGeo, cubeMaterial);
-        voxel.position.copy(intersect.point).add(intersect.face.normal);
-        voxel.position
-          .divideScalar(100)
-          .floor()
-          .multiplyScalar(100)
-          .addScalar(50);
-        scene.add(voxel);
-
-        objects.push(voxel);
-      }
+      console.log(intersects)
 
       // render();
     }
   }
 
-  function onDocumentKeyDown(event) {
-    switch (event.keyCode) {
-      case 16:
-        isShiftDown = true;
-        break;
-    }
-  }
-
-  function onDocumentKeyUp(event) {
-    switch (event.keyCode) {
-      case 16:
-        isShiftDown = false;
-        break;
-    }
-  }
-
+  
   function render() {
     const now = Date.now() / 1000;
     const delta = clock.getDelta();
