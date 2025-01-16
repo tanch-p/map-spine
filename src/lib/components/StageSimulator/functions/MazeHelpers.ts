@@ -19,8 +19,8 @@ export const gameToPos = (
 ) => {
   const rows = mazeLayout.length;
   const cols = mazeLayout[0].length;
-  const posX = getCoordinate(coordinates[0], cols / 2, gridSize);
-  const posY = getCoordinate(coordinates[1], rows / 2, gridSize);
+  const posX = getCoordinate(coordinates[0],"x");
+  const posY = getCoordinate(coordinates[1], "y");
   return { posX, posY };
 };
 

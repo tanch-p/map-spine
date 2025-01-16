@@ -1,98 +1,613 @@
 <script lang="ts">
-import { onMount } from "svelte";
+  import { onMount } from "svelte";
   import * as THREE from "three";
   import * as spine from "$lib/spine";
-  
+  import config from "$lib/data/level_rogue4_1-1.json";
+  import { Game } from "./objects/Game";
+
+  let canvasElement: HTMLCanvasElement;
+  const enemies = [
+    {
+      useDb: true,
+      id: "enemy_2001_duckmi",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2002_bearmi",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2034_sythef",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2085_skzjxd",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_1000_gopro",
+      level: 0,
+      overwrittenData: {
+        name: {
+          m_defined: false,
+          m_value: null,
+        },
+        description: {
+          m_defined: false,
+          m_value: null,
+        },
+        prefabKey: {
+          m_defined: false,
+          m_value: null,
+        },
+        attributes: {
+          maxHp: {
+            m_defined: false,
+            m_value: 0,
+          },
+          atk: {
+            m_defined: true,
+            m_value: 150,
+          },
+          def: {
+            m_defined: false,
+            m_value: 0,
+          },
+          magicResistance: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          cost: {
+            m_defined: false,
+            m_value: 0,
+          },
+          blockCnt: {
+            m_defined: false,
+            m_value: 0,
+          },
+          moveSpeed: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          attackSpeed: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          baseAttackTime: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          respawnTime: {
+            m_defined: false,
+            m_value: 0,
+          },
+          hpRecoveryPerSec: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          spRecoveryPerSec: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          maxDeployCount: {
+            m_defined: false,
+            m_value: 0,
+          },
+          massLevel: {
+            m_defined: false,
+            m_value: 0,
+          },
+          baseForceLevel: {
+            m_defined: false,
+            m_value: 0,
+          },
+          tauntLevel: {
+            m_defined: false,
+            m_value: 0,
+          },
+          epDamageResistance: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          epResistance: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          damageHitratePhysical: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          damageHitrateMagical: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          stunImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          silenceImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          sleepImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          frozenImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          levitateImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          disarmedCombatImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          fearedImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+        },
+        applyWay: {
+          m_defined: false,
+          m_value: "NONE",
+        },
+        motion: {
+          m_defined: false,
+          m_value: "WALK",
+        },
+        enemyTags: {
+          m_defined: false,
+          m_value: null,
+        },
+        lifePointReduce: {
+          m_defined: false,
+          m_value: 0,
+        },
+        levelType: {
+          m_defined: false,
+          m_value: "NORMAL",
+        },
+        rangeRadius: {
+          m_defined: false,
+          m_value: 0.0,
+        },
+        numOfExtraDrops: {
+          m_defined: false,
+          m_value: 0,
+        },
+        viewRadius: {
+          m_defined: false,
+          m_value: 0.0,
+        },
+        notCountInTotal: {
+          m_defined: false,
+          m_value: false,
+        },
+        talentBlackboard: null,
+        skills: null,
+        spData: null,
+      },
+    },
+    {
+      useDb: true,
+      id: "enemy_2086_skzdwx",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2087_skzdwy",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2088_skzdwz",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_1243_ltswar",
+      level: 0,
+      overwrittenData: {
+        name: {
+          m_defined: false,
+          m_value: null,
+        },
+        description: {
+          m_defined: false,
+          m_value: null,
+        },
+        prefabKey: {
+          m_defined: false,
+          m_value: null,
+        },
+        attributes: {
+          maxHp: {
+            m_defined: true,
+            m_value: 8000,
+          },
+          atk: {
+            m_defined: true,
+            m_value: 650,
+          },
+          def: {
+            m_defined: true,
+            m_value: 200,
+          },
+          magicResistance: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          cost: {
+            m_defined: false,
+            m_value: 0,
+          },
+          blockCnt: {
+            m_defined: false,
+            m_value: 0,
+          },
+          moveSpeed: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          attackSpeed: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          baseAttackTime: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          respawnTime: {
+            m_defined: false,
+            m_value: 0,
+          },
+          hpRecoveryPerSec: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          spRecoveryPerSec: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          maxDeployCount: {
+            m_defined: false,
+            m_value: 0,
+          },
+          massLevel: {
+            m_defined: false,
+            m_value: 0,
+          },
+          baseForceLevel: {
+            m_defined: false,
+            m_value: 0,
+          },
+          tauntLevel: {
+            m_defined: false,
+            m_value: 0,
+          },
+          epDamageResistance: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          epResistance: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          damageHitratePhysical: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          damageHitrateMagical: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          stunImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          silenceImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          sleepImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          frozenImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          levitateImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          disarmedCombatImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          fearedImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+        },
+        applyWay: {
+          m_defined: false,
+          m_value: "NONE",
+        },
+        motion: {
+          m_defined: false,
+          m_value: "WALK",
+        },
+        enemyTags: {
+          m_defined: false,
+          m_value: null,
+        },
+        lifePointReduce: {
+          m_defined: false,
+          m_value: 0,
+        },
+        levelType: {
+          m_defined: false,
+          m_value: "NORMAL",
+        },
+        rangeRadius: {
+          m_defined: false,
+          m_value: 0.0,
+        },
+        numOfExtraDrops: {
+          m_defined: false,
+          m_value: 0,
+        },
+        viewRadius: {
+          m_defined: false,
+          m_value: 0.0,
+        },
+        notCountInTotal: {
+          m_defined: false,
+          m_value: false,
+        },
+        talentBlackboard: null,
+        skills: null,
+        spData: null,
+      },
+    },
+    {
+      useDb: true,
+      id: "enemy_1071_dftman",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_1012_dcross",
+      level: 0,
+      overwrittenData: {
+        name: {
+          m_defined: false,
+          m_value: null,
+        },
+        description: {
+          m_defined: false,
+          m_value: null,
+        },
+        prefabKey: {
+          m_defined: false,
+          m_value: null,
+        },
+        attributes: {
+          maxHp: {
+            m_defined: true,
+            m_value: 5000,
+          },
+          atk: {
+            m_defined: true,
+            m_value: 350,
+          },
+          def: {
+            m_defined: true,
+            m_value: 100,
+          },
+          magicResistance: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          cost: {
+            m_defined: false,
+            m_value: 0,
+          },
+          blockCnt: {
+            m_defined: false,
+            m_value: 0,
+          },
+          moveSpeed: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          attackSpeed: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          baseAttackTime: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          respawnTime: {
+            m_defined: false,
+            m_value: 0,
+          },
+          hpRecoveryPerSec: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          spRecoveryPerSec: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          maxDeployCount: {
+            m_defined: false,
+            m_value: 0,
+          },
+          massLevel: {
+            m_defined: false,
+            m_value: 0,
+          },
+          baseForceLevel: {
+            m_defined: false,
+            m_value: 0,
+          },
+          tauntLevel: {
+            m_defined: false,
+            m_value: 0,
+          },
+          epDamageResistance: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          epResistance: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          damageHitratePhysical: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          damageHitrateMagical: {
+            m_defined: false,
+            m_value: 0.0,
+          },
+          stunImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          silenceImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          sleepImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          frozenImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          levitateImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          disarmedCombatImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+          fearedImmune: {
+            m_defined: false,
+            m_value: false,
+          },
+        },
+        applyWay: {
+          m_defined: false,
+          m_value: "NONE",
+        },
+        motion: {
+          m_defined: false,
+          m_value: "WALK",
+        },
+        enemyTags: {
+          m_defined: false,
+          m_value: null,
+        },
+        lifePointReduce: {
+          m_defined: false,
+          m_value: 0,
+        },
+        levelType: {
+          m_defined: false,
+          m_value: "NORMAL",
+        },
+        rangeRadius: {
+          m_defined: false,
+          m_value: 0.0,
+        },
+        numOfExtraDrops: {
+          m_defined: false,
+          m_value: 0,
+        },
+        viewRadius: {
+          m_defined: false,
+          m_value: 0.0,
+        },
+        notCountInTotal: {
+          m_defined: false,
+          m_value: false,
+        },
+        talentBlackboard: null,
+        skills: null,
+        spData: null,
+      },
+    },
+    {
+      useDb: true,
+      id: "enemy_2069_skzbox",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2067_skzcy",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2065_skzjs",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2091_skzgds",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2070_skzfbx",
+      level: 0,
+      overwrittenData: null,
+    },
+    {
+      useDb: true,
+      id: "enemy_2093_skzams",
+      level: 0,
+      overwrittenData: null,
+    },
+  ];
+  onMount(() => {
+    const game = new Game(config, enemies, canvasElement);
+  });
 </script>
 
-let stage: StageScene;
-  let assetManager: spine.AssetManager;
-  let mesh, skeletonMesh;
-  var lastFrameTime = Date.now() / 1000;
+<canvas bind:this={canvasElement}></canvas>
 
-  const objects = [];
-
-  onMount(() => {
-    const rows = mapConfig.mapData.map.length;
-    const cols = mapConfig.mapData.map[0].length;
-    const gridSize = 60;
-    stage = new StageScene(canvasElement, gridSize, rows, cols);
-
-    // The X axis is red. The Y axis is green. The Z axis is blue.
-    const axesHelper = new THREE.AxesHelper(50);
-    axesHelper.position.x = 350;
-    axesHelper.position.y = -250;
-    axesHelper.position.z = 0;
-
-    stage.scene.add(axesHelper);
-
-    // Optional: Add a grid to help visualize perspective
-    // const gridHelper = new MapGrids(
-    //   gridCols * 60,
-    //   gridRows * 60,
-    //   gridCols,
-    //   gridRows
-    // );
-    // gridHelper.rotation.x = Math.PI / 2;
-    // stage.scene.add(gridHelper);
-
-    //! spine here
-    assetManager = new spine.AssetManager("/spine/");
-    assetManager.loadBinary("enemy_1111_ucommd_2.skel");
-    assetManager.loadTextureAtlas("enemy_1111_ucommd_2.atlas");
-
-    requestAnimationFrame(load);
-
-    function load(name, scale) {
-      if (assetManager.isLoadingComplete()) {
-        // Add a box to the scene to which we attach the skeleton mesh
-        let spineMeshGeometry = new THREE.BoxGeometry(50, 50, 50);
-        let spineMeshMaterial = new THREE.MeshBasicMaterial({
-          color: 0xff0000,
-          // wireframe: true,
-          visible: false,
-        });
-        mesh = new THREE.Mesh(spineMeshGeometry, spineMeshMaterial);
-        stage.scene.add(mesh);
-        objects.push(mesh);
-
-        // Load the texture atlas using name.atlas and name.png from the AssetManager.
-        // The function passed to TextureAtlas is used to resolve relative paths.
-        const atlas = assetManager.get("enemy_1111_ucommd_2.atlas");
-        // Create a AtlasAttachmentLoader that resolves region, mesh, boundingbox and path attachments
-        const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
-
-        // Create a SkeletonJson instance for parsing the .json file.
-        let skeletonBinary = new spine.SkeletonBinary(atlasLoader);
-
-        // Set the scale to apply during parsing, parse the file, and create a new skeleton.
-        skeletonBinary.scale = 0.4;
-        let skeletonData = skeletonBinary.readSkeletonData(
-          assetManager.get("enemy_1111_ucommd_2.skel")
-        );
-
-        // Create a SkeletonMesh from the data and attach it to the scene
-        skeletonMesh = new spine.SkeletonMesh(skeletonData, (parameters) => {
-          parameters.depthTest = true;
-          parameters.depthWrite = true;
-          parameters.alphaTest = 0.001;
-        });
-
-        skeletonMesh.state.setAnimation(0, "Move", true);
-        mesh.add(skeletonMesh);
-        mesh.position.x = -100;
-        stage.renderer.setAnimationLoop(() => stage.render());
-        // stage.renderer.setAnimationLoop(() =>
-        //   render(stage.renderer, stage.scene, stage.camera)
-        // );
-      } else requestAnimationFrame(load);
-    }
-    function render(renderer, scene, camera) {
-      renderer.render(scene, camera);
-    }
-
-    // Cleanup
-    return () => {
-      stage.renderer.dispose();
-    };
-  });
+<style>
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    margin: 0 auto;
+  }
+</style>

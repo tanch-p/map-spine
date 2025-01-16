@@ -1,73 +1,79 @@
+import { GameConfig } from "$lib/components/StageSimulator/objects/GameConfig";
+
 //center is 0,0
-export function setPosition(
-  object,
-  coordinates: number[],
-  mazeLayout,
-  gridSize = 50
-) {
+export function setPosition(object, coordinates: number[]) {
   const x = coordinates[0];
   const y = coordinates[1];
-  const rows = mazeLayout.length;
-  const cols = mazeLayout[0].length;
-  const posX = getCoordinate(x, cols / 2, gridSize);
-  const posY = getCoordinate(y, rows / 2, gridSize);
+  const posX = getCoordinate(x, "x");
+  const posY = getCoordinate(y, "y");
 
   object.position.x = posX;
   object.position.y = posY;
   console.log(posX, posY);
 }
 
-export const normalToPos = (
-  coordinates: number[],
-  mazeLayout: [number[]],
-  gridSize = 50
-) => {
-  const rows = mazeLayout.length;
-  const cols = mazeLayout[0].length;
-  const posX = getNormalPos(coordinates[0], cols / 2, gridSize);
-  const posY = getNormalPos(coordinates[1], rows / 2, gridSize, "y");
+export const normalToPos = (coordinates: number[]) => {
+  const posX = getNormalPos(coordinates[0], "x");
+  const posY = getNormalPos(coordinates[1], "y");
   return { posX, posY };
 };
 
 export const gameToPos = (
-  coordinates: number[],
-  mazeLayout: [number[]],
-  gridSize = 50
+  coordinates: number[] //x,y
 ) => {
-  const rows = mazeLayout.length;
-  const cols = mazeLayout[0].length;
-  const posX = getCoordinate(coordinates[0], cols / 2, gridSize);
-  const posY = getCoordinate(coordinates[1], rows / 2, gridSize);
+  const posX = getCoordinate(coordinates[0], "x");
+  const posY = getCoordinate(coordinates[1], "y");
   return { posX, posY };
 };
 
-const getCoordinate = (coordinate, center, gridSize) => {
+const getCoordinate = (coordinate, type = "x") => {
+  const center =
+    type === "x"
+      ? GameConfig.mazeLayout[0].length / 2
+      : GameConfig.mazeLayout.length / 2;
   if (coordinate === center) {
     if (center % 2 === 0) {
-      return gridSize / 2;
+      return GameConfig.gridSize / 2;
     } else {
       return 0;
     }
   }
-  return (coordinate - center) * gridSize + gridSize / 2;
+  return (coordinate - center) * GameConfig.gridSize + GameConfig.gridSize / 2;
 };
 
-export const getNormalPos = (coordinate, mazeLayout, gridSize, type = "x") => {
-  const center = type === "x" ? mazeLayout[0].length /2 : mazeLayout.length/2;
+// use normal pos here instead of game pos
+export const getVectorCoordinates = (pos, reachOffset) => {
+  let offSetX = 0,
+    offSetY = 0;
+  if (reachOffset) {
+    offSetX = reachOffset.x;
+    offSetY = reachOffset.y;
+  }
+  const { row, col } = pos;
+  const x = getCoordinate(col + offSetX, "x");
+  const y = -getCoordinate(row - offSetY, "y");
+  return { x, y };
+};
+
+export const getNormalPos = (coordinate, type = "x") => {
+  const center =
+    type === "x"
+      ? GameConfig.mazeLayout[0].length / 2
+      : GameConfig.mazeLayout.length / 2;
   if (coordinate === center) {
     if (center % 2 === 0) {
-      return gridSize / 2;
+      return GameConfig.gridSize / 2;
     } else {
       return 0;
     }
   }
   return type === "x"
-    ? (coordinate - center) * gridSize + gridSize / 2
-    : (center - 1 - coordinate) * gridSize + gridSize / 2;
+    ? (coordinate - center) * GameConfig.gridSize + GameConfig.gridSize / 2
+    : (center - 1 - coordinate) * GameConfig.gridSize + GameConfig.gridSize / 2;
 };
 
-export const convertMovementConfig = (config, mazeLayout) => {
-  const height = mazeLayout.length;
+export const convertMovementConfig = (config) => {
+  const height = GameConfig.mazeLayout.length;
   const start = {
     row: height - 1 - config.startPosition.row,
     col: config.startPosition.col,

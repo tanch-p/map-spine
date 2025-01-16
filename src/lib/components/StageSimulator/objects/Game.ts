@@ -1,32 +1,31 @@
 import * as THREE from "three";
 import * as spine from "$lib/spine";
 import { GameMap } from "./GameMap";
-import { Enemy } from "./Enemy";
-import { gameToPos, generateMaze } from "../functions/MazeHelpers";
+import SpawnManager from "./SpawnManager";
+import { GameConfig } from "./GameConfig";
+import { generateMaze } from "../functions/MazeHelpers";
+import { Theta } from "./Theta";
 
 export class Game {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   clock: THREE.Clock;
   renderer: THREE.WebGLRenderer;
-  objects: THREE.Mesh[];
-  cubeGeo: THREE.BoxGeometry;
-  cubeMaterial: THREE.MeshLambertMaterial;
-  raycaster: THREE.Raycaster;
-  pointer: THREE.Vector2;
   map: GameMap;
-  mazeLayout: [number[]];
+  spawnManager: SpawnManager;
   config;
-  assetManager: spine.AssetManager;
-  gridSize: number;
-  enemies: Enemy[];
+  spineAssetManager: spine.AssetManager;
+  enemies: any[];
+  gameTime: number;
+  public scaledElapsedTime: number = 0; // Total game-time elapsed
 
-  constructor(config, enemies) {
-    this.mazeLayout = generateMaze(config.map, config.tiles);
+  constructor(config, enemies, canvasElement: HTMLCanvasElement) {
     this.config = config;
-    this.gridSize = 50;
-    this.objects = [];
-    this.enemies = [];
+    this.enemies = enemies;
+
+    const mazeLayout = generateMaze(config.mapData.map, config.mapData.tiles);
+    GameConfig.mazeLayout = mazeLayout;
+    GameConfig.pathFinder = new Theta(mazeLayout);
 
     // threejs
     this.scene = new THREE.Scene();
@@ -50,108 +49,41 @@ export class Game {
     this.scene.add(directionalLight);
     this.clock = new THREE.Clock();
 
-    const rollOverGeo = new THREE.BoxGeometry(100, 100, 100);
-    const rollOverMaterial = new THREE.MeshBasicMaterial({
-      color: 0xff0000,
-      opacity: 0.5,
-      transparent: true,
-    });
-    const rollOverMesh = new THREE.Mesh(rollOverGeo, rollOverMaterial);
-    this.scene.add(rollOverMesh);
+    const axesHelper = new THREE.AxesHelper(200);
+    axesHelper.position.x = 650;
+    axesHelper.position.y = 0;
+    axesHelper.position.z = 0;
 
-    // cubes
-    const map = new THREE.TextureLoader().load("/square-outline-textured.png");
-    map.colorSpace = THREE.SRGBColorSpace;
-    this.cubeGeo = new THREE.BoxGeometry(100, 100, 100);
-    this.cubeMaterial = new THREE.MeshLambertMaterial({
-      color: 0xfeb74c,
-      map: map,
-    });
+    this.scene.add(axesHelper);
 
-    const geometry = new THREE.PlaneGeometry(
-      this.mazeLayout[0].length * this.gridSize,
-      this.mazeLayout.length * this.gridSize
-    );
-    const plane = new THREE.Mesh(
-      geometry,
-      new THREE.MeshBasicMaterial({ visible: true })
-    );
-    this.scene.add(plane);
-    this.objects.push(plane);
-    this.addWalls(this.mazeLayout);
-    this.raycaster = new THREE.Raycaster();
-    this.pointer = new THREE.Vector2();
+    // time
+    this.gameStartTime = performance.now(); // Track the start time of the game
+    this.gameTime = 0;
 
     // spine here
-    this.assetManager = new spine.AssetManager("/spine/");
+    this.spineAssetManager = new spine.AssetManager("/spine/");
     for (const enemy of enemies) {
-      this.assetManager.loadBinary("enemy_1111_ucommd_2.skel");
-      this.assetManager.loadTextureAtlas("enemy_1111_ucommd_2.atlas");
+      this.spineAssetManager.loadBinary("enemy_1111_ucommd_2.skel");
+      this.spineAssetManager.loadTextureAtlas("enemy_1111_ucommd_2.atlas");
     }
-
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: canvasElement,
+      antialias: true,
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(this.renderer.domElement);
     window.addEventListener("resize", this.onWindowResize);
-
-    this.map = new GameMap(this.scene);
+    this.map = new GameMap(this.scene, config, this.spineAssetManager);
+    this.spawnManager = new SpawnManager(config, this.map);
     this.load();
   }
 
-  addWalls(mazeLayout: [number[]]) {
-    mazeLayout.toReversed().forEach((row, rowIdx) =>
-      row.forEach((mask, colIdx) => {
-        if (mask === 1) {
-          const voxel = new THREE.Mesh(this.cubeGeo, this.cubeMaterial);
-          const { posX, posY } = gameToPos(
-            [rowIdx, colIdx],
-            mazeLayout,
-            this.gridSize
-          );
-          voxel.position.set(posX, posY, 0);
-          this.scene.add(voxel);
-
-          this.objects.push(voxel);
-        }
-      })
-    );
-  }
-
   load() {
-    if (this.assetManager.isLoadingComplete()) {
-      // Add a box to the scene to which we attach the skeleton mesh
-      let spineMeshGeometry = new THREE.CircleGeometry(25, 32);
-      let spineMeshMaterial = new THREE.MeshBasicMaterial({
-        color: 0x666666,
-        // wireframe: true,
-        visible: true,
-      });
-      for (const enemy of enemies) {
-        const enemyObj = new Enemy();
-        enemyObj.mesh = new THREE.Mesh(spineMeshGeometry, spineMeshMaterial);
-        const atlas = this.assetManager.get("enemy_1111_ucommd_2.atlas");
-        const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
-        const skeletonBinary = new spine.SkeletonBinary(atlasLoader);
-        skeletonBinary.scale = 0.4;
-        const skeletonData = skeletonBinary.readSkeletonData(
-          this.assetManager.get("enemy_1111_ucommd_2.skel")
-        );
-
-        const skeletonMesh = new spine.SkeletonMesh(
-          skeletonData,
-          (parameters) => {
-            parameters.depthTest = false;
-            parameters.alphaTest = 0.001;
-          }
-        );
-        enemyObj.skel = skeletonMesh;
-        enemyObj.mesh.add(skeletonMesh);
-        enemyObj.skel.state.setAnimation(0, "Idile", true);
-      }
-
-      this.renderer.setAnimationLoop(this.render);
-    } else requestAnimationFrame(this.load);
+    if (this.spineAssetManager.isLoadingComplete()) {
+      this.renderer.setAnimationLoop(() => this.render());
+    } else requestAnimationFrame(() => this.load());
   }
+
+  reset() {}
 
   onWindowResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -162,8 +94,11 @@ export class Game {
     this.render();
   }
   render() {
-    const delta = this.clock.getDelta();
-    this.map.update(delta);
+    const deltaTime = this.clock.getDelta() * GameConfig.speedFactor;
+
+    this.scaledElapsedTime += deltaTime;
+    this.spawnManager.update(deltaTime, this.scaledElapsedTime);
+    this.map.update(deltaTime);
     this.renderer.render(this.scene, this.camera);
   }
 }

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A* Pathfinding Demo</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="mazeCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Maze Layout
+    const mazeLayout = [
+      [1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+      [1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+      [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1],
+      [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1],
+      [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1],
+      [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ];
+
+    // Constants
+    const tileSize = 100;
+    const objectRadius = 10;
+    
+    // Maze dimensions
+    const rows = mazeLayout.length;
+    const cols = mazeLayout[0].length;
+
+    // Initialize canvas size
+    canvas.width = cols * tileSize;
+    canvas.height = rows * tileSize;
+
+    // Directions for movement (including diagonals)
+    const directions = [
+      { x: 1, y: 0 },   // right
+      { x: 0, y: 1 },   // down
+      { x: -1, y: 0 },  // left
+      { x: 0, y: -1 },  // up
+      { x: 1, y: 1 },   // bottom-right diagonal
+      { x: 1, y: -1 },  // top-right diagonal
+      { x: -1, y: 1 },  // bottom-left diagonal
+      { x: -1, y: -1 }  // top-left diagonal
+    ];
+
+    // Euclidean Distance Heuristic
+    function euclideanDistance(a, b) {
+      return Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
+    }
+
+    // A* Pathfinding Algorithm
+    function astar(start, goal) {
+      const openList = [start];
+      const closedList = [];
+      const gScore = Array.from({ length: rows }, () => Array(cols).fill(Infinity));
+      const fScore = Array.from({ length: rows }, () => Array(cols).fill(Infinity));
+      const cameFrom = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+      gScore[start.y][start.x] = 0;
+      fScore[start.y][start.x] = euclideanDistance(start, goal);
+
+      while (openList.length > 0) {
+        openList.sort((a, b) => fScore[a.y][a.x] - fScore[b.y][b.x]);
+        const current = openList.shift();
+        
+        if (current.x === goal.x && current.y === goal.y) {
+          // Reconstruct path
+          const path = [];
+          let temp = current;
+          while (temp) {
+            path.unshift(temp);
+            temp = cameFrom[temp.y][temp.x];
+          }
+          return path;
+        }
+
+        closedList.push(current);
+
+        for (const { x: dx, y: dy } of directions) {
+          const nx = current.x + dx;
+          const ny = current.y + dy;
+
+          if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && mazeLayout[ny][nx] === 0 && !closedList.some(p => p.x === nx && p.y === ny)) {
+            const tentativeGScore = gScore[current.y][current.x] + 1;
+
+            if (tentativeGScore < gScore[ny][nx]) {
+              cameFrom[ny][nx] = current;
+              gScore[ny][nx] = tentativeGScore;
+              fScore[ny][nx] = gScore[ny][nx] + euclideanDistance({ x: nx, y: ny }, goal);
+              if (!openList.some(p => p.x === nx && p.y === ny)) {
+                openList.push({ x: nx, y: ny });
+              }
+            }
+          }
+        }
+      }
+
+      return []; // No path found
+    }
+
+    // Draw the maze
+    function drawMaze() {
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          ctx.fillStyle = mazeLayout[y][x] === 1 ? 'black' : 'white';
+          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+          ctx.strokeRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
+      }
+    }
+
+    // Draw the object
+    function drawObject(position) {
+      ctx.beginPath();
+      ctx.arc(position.x * tileSize + tileSize / 2, position.y * tileSize + tileSize / 2, objectRadius, 0, 2 * Math.PI);
+      ctx.fillStyle = 'red';
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Initialize
+    const start = { x: 1, y: 0 };
+    const goal = { x: 2, y: 5 };
+    const path = astar(start, goal);
+    let pathIndex = 0;
+
+    // Animation loop
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawMaze();
+
+      if (pathIndex < path.length) {
+        drawObject(path[pathIndex]);
+        pathIndex++;
+        requestAnimationFrame(animate);
+      }
+    }
+
+    // Start the animation
+    animate();
+  </script>
+</body>
+</html>

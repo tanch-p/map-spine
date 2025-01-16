@@ -25,7 +25,7 @@ class Node {
     }
 }
 
-class TrueANYA {
+export class ANYA {
     constructor(grid) {
         this.grid = grid;
         this.rows = grid.length;
@@ -79,14 +79,12 @@ class TrueANYA {
         return this.grid[y][x] === 0 && obstacleCount > 0 && openCount > 0;
     }
 
-    findPath(startX, startY, endX, endY) {
+    findPath(startX:number, startY:number, endX:number, endY:number) {
         const start = new Point(startX, startY);
         const end = new Point(endX, endY);
-
         if (!this.isWalkable(start) || !this.isWalkable(end)) {
             return null;
         }
-
         const startNode = new Node(start);
         startNode.h = start.distanceTo(end);
         startNode.f = startNode.h;
