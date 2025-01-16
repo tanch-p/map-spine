@@ -38,7 +38,7 @@ export class Game {
     );
     this.camera.position.set(0, -150, 800);
     this.camera.lookAt(0, 0, 0);
-    this.camera.rotation.x = 0.194; // Tilt up slightly
+    this.camera.rotation.x = 0.3; // Tilt up slightly
     // lights
 
     const ambientLight = new THREE.AmbientLight(0x606060, 3);

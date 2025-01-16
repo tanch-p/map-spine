@@ -30,10 +30,24 @@ export class GameMap {
     this.textureLoader = new THREE.TextureLoader();
     const shadow = this.textureLoader.load("sprite_shadow.png");
     this.sprites.shadow = shadow;
-
+    console.log(GameConfig.mazeLayout.length, GameConfig.mazeLayout[0].length);
     this.tileTexture = this.textureLoader.load("floor_icons.png");
     this.tileTexture.magFilter = THREE.NearestFilter; // Keeps pixel art sharp
     this.tileTexture.minFilter = THREE.NearestFilter;
+
+    this.textureLoader.load("level_ro4_n_1_1.webp", (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace; // Correct color space
+
+      const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+      const sprite = new THREE.Sprite(spriteMaterial);
+      const aspect = texture.image.width / texture.image.height;
+      const desiredHeight = 800; // Set desired height
+      const desiredWidth = desiredHeight * aspect;
+    
+      sprite.scale.set(desiredWidth, desiredHeight, 1);
+      sprite.renderOrder = -1;
+      scene.add(sprite);
+    });
 
     // const tile = this.createTile(2, 0, 0);
     // red cube which appears on mouse hover
