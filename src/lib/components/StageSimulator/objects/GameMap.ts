@@ -1,9 +1,15 @@
 import * as THREE from "three";
 import * as spine from "$lib/spine";
 import { Enemy } from "./Enemy";
-import { convertMovementConfig, gameToPos } from "$lib/functions/lib";
+import {
+  convertMovementConfig,
+  gameToPos,
+  getVectorCoordinates,
+} from "$lib/functions/lib";
 import { Theta } from "./Theta";
 import { GameConfig } from "./GameConfig";
+import { StickBox } from "./StickBox";
+import { TextSprite } from "./TextSprite";
 
 export class GameMap {
   scene: THREE.Scene;
@@ -17,37 +23,29 @@ export class GameMap {
   cost: number;
   spineAssetManager: spine.AssetManager;
   textureLoader: THREE.TextureLoader;
-  tileTexture;
   pathFinder: Theta;
-  sprites: any;
   constructor(scene: THREE.Scene, config, spineAssetManager) {
     this.config = config;
     this.scene = scene;
     this.objects = [];
     this.spineAssetManager = spineAssetManager;
     this.pathFinder = new Theta(GameConfig.mazeLayout);
-    this.sprites = [];
     this.textureLoader = new THREE.TextureLoader();
-    const shadow = this.textureLoader.load("sprite_shadow.png");
-    this.sprites.shadow = shadow;
-    console.log(GameConfig.mazeLayout.length, GameConfig.mazeLayout[0].length);
-    this.tileTexture = this.textureLoader.load("floor_icons.png");
-    this.tileTexture.magFilter = THREE.NearestFilter; // Keeps pixel art sharp
-    this.tileTexture.minFilter = THREE.NearestFilter;
+    this.initTextures();
+    // this.textureLoader.load("level_ro4_n_1_1.webp", (texture) => {
+    //   texture.colorSpace = THREE.SRGBColorSpace; // Correct color space
 
-    this.textureLoader.load("level_ro4_n_1_1.webp", (texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace; // Correct color space
+    //   const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+    //   const sprite = new THREE.Sprite(spriteMaterial);
+    //   const aspect = texture.image.width / texture.image.height;
+    //   const desiredHeight = 840; // Set desired height
+    //   const desiredWidth = desiredHeight * aspect;
 
-      const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-      const sprite = new THREE.Sprite(spriteMaterial);
-      const aspect = texture.image.width / texture.image.height;
-      const desiredHeight = 800; // Set desired height
-      const desiredWidth = desiredHeight * aspect;
-    
-      sprite.scale.set(desiredWidth, desiredHeight, 1);
-      sprite.renderOrder = -1;
-      scene.add(sprite);
-    });
+    //   sprite.scale.set(desiredWidth, desiredHeight, 1);
+    //   sprite.position.set(0,-30,0)
+    //   sprite.renderOrder = -1;
+    //   scene.add(sprite);
+    // });
 
     // const tile = this.createTile(2, 0, 0);
     // red cube which appears on mouse hover
@@ -63,12 +61,12 @@ export class GameMap {
     // cubes
     const map = new THREE.TextureLoader().load("/square-outline-textured.png");
     map.colorSpace = THREE.SRGBColorSpace;
-    this.cubeGeo = new THREE.BoxGeometry(100, 100, 100);
+    this.cubeGeo = new THREE.BoxGeometry(100, 100, 50);
     this.cubeMaterial = new THREE.MeshLambertMaterial({
       color: 0xfeb74c,
       map: map,
     });
-    this.addWalls(GameConfig.mazeLayout);
+    this.setTiles(config.mapData);
 
     const geometry = new THREE.PlaneGeometry(
       GameConfig.mazeLayout[0].length * GameConfig.gridSize,
@@ -84,6 +82,29 @@ export class GameMap {
     this.pointer = new THREE.Vector2();
   }
 
+  initTextures() {
+    const shadow = this.textureLoader.load("sprite_shadow.png");
+    GameConfig.sprites.set("shadow", { texture: shadow, config: null });
+    const tileTexture = this.textureLoader.load("floor_icons.png");
+    tileTexture.magFilter = THREE.NearestFilter; // Keeps pixel art sharp
+    tileTexture.minFilter = THREE.NearestFilter;
+    GameConfig.sprites.set("floorIcons", {
+      texture: tileTexture,
+      config: null,
+    });
+    const mapObjTexture = this.textureLoader.load("map_object_texture.png");
+    mapObjTexture.colorSpace = THREE.SRGBColorSpace;
+    GameConfig.sprites.set("blueBox", {
+      texture: mapObjTexture,
+      config: {
+        UVWidth: 0.42,
+        UVHeight: 0.42,
+        uvOffsetX: 0.49,
+        uvOffsetY: 0.49,
+      },
+    });
+  }
+
   createTile(tileIndex: number, positionX: number, positionY: number) {
     const tilesHoriz = 4;
     const tilesVert = 4;
@@ -91,7 +112,9 @@ export class GameMap {
       GameConfig.gridSize,
       GameConfig.gridSize
     );
-    const material = new THREE.MeshBasicMaterial({ map: this.tileTexture });
+    const material = new THREE.MeshBasicMaterial({
+      map: GameConfig.sprites.get("floorIcons").texture,
+    });
     const tile = new THREE.Mesh(geometry, material);
 
     // Calculate UV mapping for the correct tile
@@ -126,15 +149,30 @@ export class GameMap {
     return tile;
   }
 
-  addWalls(mazeLayout: [number[]]) {
-    mazeLayout.toReversed().forEach((row, rowIdx) =>
-      row.forEach((mask, colIdx) => {
-        if (mask === 1) {
-          const voxel = new THREE.Mesh(this.cubeGeo, this.cubeMaterial);
-          const { posX, posY } = gameToPos([colIdx, rowIdx]);
-          voxel.position.set(posX, posY, 0);
-          this.scene.add(voxel);
+  setTiles(mapData) {
+    const { map, tiles } = mapData;
+    map.forEach((row, rowIdx) =>
+      row.forEach((tileIndex, colIdx) => {
+        const [tileName, heightType, mask] = tiles[tileIndex];
+        let obj, z=0;
+        switch (tileName) {
+          case "tile_end":
+            obj = new StickBox(100, 100, 100).getMesh();
+            z=50
+            break;
+          case "tile_start":
+            obj = new StickBox(100, 100, 100, 0xe72d50).getMesh();
+            z=50
+            break;
+
+          default:
+            obj = new TextSprite(tileName.replace("tile_", "")).get();
+            break;
         }
+
+        const { x, y } = getVectorCoordinates({ row: rowIdx, col: colIdx });
+        obj.position.set(x, y, z);
+        this.scene.add(obj);
       })
     );
   }
@@ -152,23 +190,23 @@ export class GameMap {
 
     // Apply different materials
     const hitBoxMaterial = new THREE.MeshBasicMaterial({
-      color: 0xf54029,
+      color: 0xc51009,
       depthTest: false,
+      // transparent:true
     });
     const shadowMaterial = new THREE.MeshBasicMaterial({
-      map: this.sprites.shadow,
+      map: GameConfig.sprites.get("shadow").texture,
       depthTest: false,
-      opacity: 0.9,
+      opacity: 0.85,
       transparent: true, // Enable alpha transparency if the image has it
     });
 
     // Create two meshes
     const hitBoxMesh = new THREE.Mesh(hitBoxGeo, hitBoxMaterial);
     const shadowMesh = new THREE.Mesh(shadowGeometry, shadowMaterial);
-
     // Offset the small mesh so they don't overlap perfectly
     hitBoxMesh.position.set(0.5, 0.5, 0.5);
-
+    shadowMesh.renderOrder = -1;
     // Group both meshes
     const group = new THREE.Group();
     group.add(shadowMesh);

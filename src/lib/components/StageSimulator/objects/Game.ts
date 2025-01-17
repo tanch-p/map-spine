@@ -36,12 +36,12 @@ export class Game {
       0.1,
       1000
     );
-    this.camera.position.set(0, -150, 800);
+    this.camera.position.set(0, -250, 800);
     this.camera.lookAt(0, 0, 0);
-    this.camera.rotation.x = 0.3; // Tilt up slightly
+    this.camera.rotation.x = 0.37; // Tilt up slightly
     // lights
 
-    const ambientLight = new THREE.AmbientLight(0x606060, 3);
+    const ambientLight = new THREE.AmbientLight(0x606060, 10);
     this.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 3);

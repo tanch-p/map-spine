@@ -42,7 +42,7 @@ const getCoordinate = (coordinate, type = "x") => {
 };
 
 // use normal pos here instead of game pos
-export const getVectorCoordinates = (pos, reachOffset) => {
+export const getVectorCoordinates = (pos, reachOffset?:any|undefined) => {
   let offSetX = 0,
     offSetY = 0;
   if (reachOffset) {
