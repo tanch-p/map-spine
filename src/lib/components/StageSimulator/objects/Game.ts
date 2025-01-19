@@ -36,16 +36,16 @@ export class Game {
       0.1,
       1000
     );
-    this.camera.position.set(0, -250, 800);
+    this.camera.position.set(0, -300, 800);
     this.camera.lookAt(0, 0, 0);
-    this.camera.rotation.x = 0.37; // Tilt up slightly
+    this.camera.rotation.x = 0.4; // Tilt up slightly
     // lights
 
-    const ambientLight = new THREE.AmbientLight(0x606060, 10);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
-    directionalLight.position.set(1, 0.75, 0.5).normalize();
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(10, 10, 500).normalize();
     this.scene.add(directionalLight);
     this.clock = new THREE.Clock();
 
@@ -97,7 +97,7 @@ export class Game {
     const deltaTime = this.clock.getDelta() * GameConfig.speedFactor;
 
     this.scaledElapsedTime += deltaTime;
-    this.spawnManager.update(deltaTime, this.scaledElapsedTime);
+    // this.spawnManager.update(deltaTime, this.scaledElapsedTime);
     this.map.update(deltaTime);
     this.renderer.render(this.scene, this.camera);
   }
