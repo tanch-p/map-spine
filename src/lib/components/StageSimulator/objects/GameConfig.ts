@@ -4,4 +4,5 @@ export class GameConfig {
   static pathFinder;
   static speedFactor: number = 2;
   static sprites = new Map();
+  static baseZIndex = 100;
 }

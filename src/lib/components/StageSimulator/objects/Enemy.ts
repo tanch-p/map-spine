@@ -37,8 +37,8 @@ export class Enemy {
     this.skel.skeleton.color.b = 0.2;
 
     const { x, y } = getVectorCoordinates(route.startPosition);
-    this.mesh.position.set(x, y, 0);
-    this.currentPos = new THREE.Vector3(x, y, 0);
+    this.mesh.position.set(x, y, GameConfig.baseZIndex);
+    this.currentPos = new THREE.Vector3(x, y, GameConfig.baseZIndex);
   }
 
   getActions(route) {
@@ -143,7 +143,7 @@ export class Enemy {
         if (!this.isMoving) {
           // Start new movement
           const { x, y } = getVectorCoordinates(position, reachOffset);
-          this.targetPos = new THREE.Vector3(x, y, 0);
+          this.targetPos = new THREE.Vector3(x, y, GameConfig.baseZIndex);
           this.isMoving = true;
           this.state = "Move";
           this.skel.state.setAnimation(0, "Move", true);
@@ -195,8 +195,8 @@ export class Enemy {
       case "APPEAR_AT_POS":
         this.mesh.visible = true;
         const { x, y } = getVectorCoordinates(position, reachOffset);
-        this.mesh.position.set(x, y, 0);
-        this.currentPos = new THREE.Vector3(x, y, 0);
+        this.mesh.position.set(x, y, GameConfig.baseZIndex);
+        this.currentPos = new THREE.Vector3(x, y, GameConfig.baseZIndex);
         this.currentActionIndex++;
         break;
       default:
