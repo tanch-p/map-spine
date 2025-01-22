@@ -1,4 +1,156 @@
 {
+    "enemies": [
+        {
+            "id": "enemy_2001_duckmi",
+            "prefabKey": "enemy_2001_duckmi",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 1,
+            "elite_min_count": 0,
+            "elite_max_count": 1,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_2002_bearmi",
+            "prefabKey": "enemy_2002_bearmi",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 1,
+            "elite_min_count": 0,
+            "elite_max_count": 1,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_2034_sythef",
+            "prefabKey": "enemy_2034_sythef",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 1,
+            "elite_min_count": 0,
+            "elite_max_count": 1,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_2085_skzjxd",
+            "prefabKey": "enemy_2085_skzjxd",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 1,
+            "elite_min_count": 0,
+            "elite_max_count": 1,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_1000_gopro",
+            "prefabKey": "enemy_1000_gopro",
+            "level": 0,
+            "min_count": 8,
+            "max_count": 8,
+            "elite_min_count": 8,
+            "elite_max_count": 8,
+            "overwrittenData": {
+                "atk": 150
+            }
+        },
+        {
+            "id": "enemy_1243_ltswar",
+            "prefabKey": "enemy_1243_ltswar",
+            "level": 0,
+            "min_count": 1,
+            "max_count": 1,
+            "elite_min_count": 2,
+            "elite_max_count": 2,
+            "overwrittenData": {
+                "hp": 8000,
+                "atk": 650,
+                "def": 200
+            }
+        },
+        {
+            "id": "enemy_1071_dftman",
+            "prefabKey": "enemy_1071_dftman",
+            "level": 0,
+            "min_count": 10,
+            "max_count": 10,
+            "elite_min_count": 10,
+            "elite_max_count": 10,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_1012_dcross",
+            "prefabKey": "enemy_1012_dcross",
+            "level": 0,
+            "min_count": 2,
+            "max_count": 2,
+            "elite_min_count": 0,
+            "elite_max_count": 0,
+            "overwrittenData": {
+                "hp": 5000,
+                "atk": 350,
+                "def": 100
+            }
+        },
+        {
+            "id": "enemy_2069_skzbox",
+            "prefabKey": "enemy_2069_skzbox",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 0,
+            "elite_min_count": 0,
+            "elite_max_count": 0,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_2067_skzcy",
+            "prefabKey": "enemy_2067_skzcy",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 0,
+            "elite_min_count": 0,
+            "elite_max_count": 0,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_2065_skzjs",
+            "prefabKey": "enemy_2065_skzjs",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 0,
+            "elite_min_count": 0,
+            "elite_max_count": 0,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_2091_skzgds",
+            "prefabKey": "enemy_2091_skzgds",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 0,
+            "elite_min_count": 0,
+            "elite_max_count": 0,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_2070_skzfbx",
+            "prefabKey": "enemy_2070_skzfbx",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 0,
+            "elite_min_count": 0,
+            "elite_max_count": 0,
+            "overwrittenData": null
+        },
+        {
+            "id": "enemy_2093_skzams",
+            "prefabKey": "enemy_2093_skzams",
+            "level": 0,
+            "min_count": 0,
+            "max_count": 0,
+            "elite_min_count": 0,
+            "elite_max_count": 0,
+            "overwrittenData": null
+        }
+    ],
     "routes": [
         {
             "motionMode": "E_NUM",
@@ -2612,7 +2764,7 @@
             "advancedWaveTag": null
         }
     ],
-    "timelines": [
+    "timeline": [
         {
             "preDelay": 0.0,
             "postDelay": 0.0,

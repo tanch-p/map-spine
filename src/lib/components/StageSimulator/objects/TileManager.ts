@@ -34,7 +34,7 @@ export class TileManager {
         );
         return boxGroup;
       case "tile_forbidden":
-        return this.createBox(40, 0xb8b8b8, 0x292929);
+        return this.createBox(0, 0xb8b8b8, 0x292929);
       case "tile_wall":
         return this.createBox(40, 0xff8108, 0xc1c1c1, "tile_wall");
       case "tile_hole":
@@ -83,6 +83,7 @@ export class TileManager {
         );
         btmBtmAttachment.position.y = -GameConfig.gridSize / 2 + 10 / 2;
         btmBtmAttachment.position.z = -GameConfig.gridSize / 2 + 10 / 2;
+        btmBtmAttachment.renderOrder=-1;
         boxGroup.add(btmBtmAttachment);
         //hazard
         const btmTopHazard = new THREE.Mesh(
@@ -96,6 +97,7 @@ export class TileManager {
           GameConfig.gridSize / 2 - topAttachmentDepth / 2 - 10;
         btmHazardGroup.add(btmTopHazard);
         btmHazardGroup.add(horizHazardTexture.clone());
+        btmHazardGroup.renderOrder=-1;
         boxGroup.add(btmHazardGroup);
 
         // Top
@@ -118,6 +120,7 @@ export class TileManager {
         );
         topBtmAttachment.position.y = GameConfig.gridSize / 2 - 10 / 2;
         topBtmAttachment.position.z = -GameConfig.gridSize / 2 + 10 / 2;
+        topBtmAttachment.renderOrder=-2;
         boxGroup.add(topBtmAttachment);
         //hazard
         const topTopHazard = new THREE.Mesh(

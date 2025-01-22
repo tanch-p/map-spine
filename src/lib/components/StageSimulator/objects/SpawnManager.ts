@@ -9,12 +9,12 @@ class SpawnManager {
   actionIndex: number;
   constructor(config, map) {
     this.map = map;
-    this.waves = config.timelines;
+    this.waves = config.timeline;
     this.currentWaveIndex = 0;
     this.actionIndex = 0;
-    this.preDelayTimer = config.timelines[0].preDelay;
-    this.postDelayTimer = config.timelines[0].postDelay;
-    this.nextWaveTimer = config.timelines?.[1]?.maxTimeWaitingForNextWave || -1;
+    this.preDelayTimer = this.waves[0].preDelay;
+    this.postDelayTimer = this.waves[0].postDelay;
+    this.nextWaveTimer = this.waves[0].maxTimeWaitingForNextWave || -1;
   }
 
   // Main update function to be called in animation loop

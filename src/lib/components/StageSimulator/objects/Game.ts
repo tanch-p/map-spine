@@ -5,10 +5,14 @@ import SpawnManager from "./SpawnManager";
 import { GameConfig } from "./GameConfig";
 import { generateMaze } from "../functions/MazeHelpers";
 import { Theta } from "./Theta";
+import { SpineScaleManager } from "./SpineScaleManager";
 
 export class Game {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  pointer: THREE.Vector2;
+  objects;
+  raycaster: THREE.Raycaster;
   clock: THREE.Clock;
   renderer: THREE.WebGLRenderer;
   map: GameMap;
@@ -19,15 +23,26 @@ export class Game {
   gameTime: number;
   public scaledElapsedTime: number = 0; // Total game-time elapsed
 
-  constructor(config, enemies, canvasElement: HTMLCanvasElement) {
+  constructor(config, canvasElement: HTMLCanvasElement) {
     this.config = config;
-    this.enemies = enemies;
+    this.enemies = config.enemies;
+    this.objects = [];
 
     const mazeLayout = generateMaze(config.mapData.map, config.mapData.tiles);
     GameConfig.mazeLayout = mazeLayout;
     GameConfig.pathFinder = new Theta(mazeLayout);
 
     // threejs
+    const frustumSize = 1000;
+    const aspect = window.innerWidth / window.innerHeight;
+    // this.camera = new THREE.OrthographicCamera(
+    //   (frustumSize * aspect) / -2, // left
+    //   (frustumSize * aspect) / 2, // right
+    //   frustumSize / 2, // top
+    //   frustumSize / -2, // bottom
+    //   1, // near
+    //   1000 // far
+    // );
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xf0f0f0);
     this.camera = new THREE.PerspectiveCamera(
@@ -39,6 +54,9 @@ export class Game {
     this.camera.position.set(0, -300, 850);
     this.camera.lookAt(0, 0, 0);
     this.camera.rotation.x = 0.4; // Tilt up slightly
+
+    this.raycaster = new THREE.Raycaster();
+    this.pointer = new THREE.Vector2();
     // lights
 
     const ambientLight = new THREE.AmbientLight(0xcccccc, 3);
@@ -62,7 +80,7 @@ export class Game {
 
     // spine here
     this.spineAssetManager = new spine.AssetManager("/spine/");
-    for (const enemy of enemies) {
+    for (const enemy of this.enemies) {
       this.spineAssetManager.loadBinary("enemy_1111_ucommd_2.skel");
       this.spineAssetManager.loadTextureAtlas("enemy_1111_ucommd_2.atlas");
     }
@@ -71,8 +89,17 @@ export class Game {
       antialias: true,
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    window.addEventListener("resize", this.onWindowResize);
-    this.map = new GameMap(this.scene, config, this.spineAssetManager);
+    window.addEventListener("resize", () => this.onWindowResize());
+    document.addEventListener("pointerdown", (e) => this.onPointerDown(e));
+
+    this.spineScaleManager = new SpineScaleManager(this.camera);
+    this.map = new GameMap(
+      this.scene,
+      config,
+      this.objects,
+      this.spineAssetManager,
+      this.spineScaleManager,
+    );
     this.spawnManager = new SpawnManager(config, this.map);
     this.load();
   }
@@ -93,9 +120,29 @@ export class Game {
 
     this.render();
   }
+  onPointerDown(event) {
+    // console.log(this.objects);
+    this.pointer.set(
+      (event.clientX / window.innerWidth) * 2 - 1,
+      -(event.clientY / window.innerHeight) * 2 + 1
+    );
+
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+
+    const intersects = this.raycaster.intersectObjects(this.objects, false);
+
+    if (intersects.length > 0) {
+      const intersect = intersects[0];
+      // console.log(intersect.point);
+      console.log(intersects);
+
+      // render();
+    }
+  }
   render() {
     const deltaTime = this.clock.getDelta() * GameConfig.speedFactor;
     this.scaledElapsedTime += deltaTime;
+    // this.spineScaleManager.updateAll();
     this.spawnManager.update(deltaTime, this.scaledElapsedTime);
     this.map.update(deltaTime);
     this.renderer.render(this.scene, this.camera);

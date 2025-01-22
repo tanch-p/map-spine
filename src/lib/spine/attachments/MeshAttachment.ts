@@ -26,9 +26,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
+import { TextureRegion } from "../Texture";
 import { TextureAtlasRegion } from "../TextureAtlas";
 import { Color, Utils } from "../Utils";
-import { VertexAttachment } from "./Attachment";
+import { Attachment, VertexAttachment } from "./Attachment";
 
 /** An attachment that displays a textured mesh. A mesh has hull vertices and internal vertices within the hull. Holes are not
  * supported. Each vertex has UVs (texture coordinates) and triangles are used to map an image on to the mesh.

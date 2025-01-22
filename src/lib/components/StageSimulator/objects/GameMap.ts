@@ -25,11 +25,18 @@ export class GameMap {
   spineAssetManager: spine.AssetManager;
   textureLoader: THREE.TextureLoader;
   pathFinder: Theta;
-  constructor(scene: THREE.Scene, config, spineAssetManager) {
+  constructor(
+    scene: THREE.Scene,
+    config,
+    objects,
+    spineAssetManager,
+    spineScaleManager
+  ) {
     this.config = config;
     this.scene = scene;
-    this.objects = [];
+    this.objects = objects;
     this.spineAssetManager = spineAssetManager;
+    this.spineScaleManager = spineScaleManager;
     this.pathFinder = new Theta(GameConfig.mazeLayout);
     this.textureLoader = new THREE.TextureLoader();
     this.tileManager = new TileManager();
@@ -193,8 +200,8 @@ export class GameMap {
     GameConfig.sprites.set("tile_wall", {
       texture: texture,
       config: {
-        UVWidth: 0.145,
-        UVHeight: 0.145,
+        UVWidth: 0.1445,
+        UVHeight: 0.1445,
         uvOffsetX: 0.324,
         uvOffsetY: 0.62,
       },
@@ -281,8 +288,8 @@ export class GameMap {
       row.forEach((tileIndex, colIdx) => {
         const [tileName, heightType, mask, blackboard] = tiles[tileIndex];
         const group = this.tileManager.get(tileName, blackboard);
-
         const { x, y } = getVectorCoordinates({ row: rowIdx, col: colIdx });
+        console.log(x,y)
         let z = 100; //elevation for everything if not -z things will get truncated
         switch (tileName) {
           case "tile_end":
@@ -342,6 +349,8 @@ export class GameMap {
     // Group both meshes
     const group = new THREE.Group();
     group.add(shadowMesh);
+    shadowMesh.userData.name = "shadow";
+    hitBoxMesh.userData.name = "hitbox";
     group.add(hitBoxMesh);
 
     const enemyData = {
@@ -362,9 +371,24 @@ export class GameMap {
       parameters.depthTest = false;
       parameters.alphaTest = 0.001;
     });
+    if (action.routeIndex === 8) {
+      this.spineScaleManager.addModel(group, skeletonMesh);
+    }
     group.add(skeletonMesh);
+    const size = new spine.Vector2(50, 100);
+    const spriteMaterial = new THREE.SpriteMaterial({
+      transparent: true,
+      depthTest:false,
+      opacity: 0,
+      color: 0x000021
+    });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(size.x, size.y, 1);
+    sprite.position.z = 100;
+    sprite.userData.spine = skeletonMesh;
+    skeletonMesh.add(sprite);
     const enemy = new Enemy(enemyData, route, group, skeletonMesh);
-    this.objects.push(skeletonMesh);
+    this.objects.push(sprite);
     this.enemies.push(enemy);
     this.scene.add(group);
   }

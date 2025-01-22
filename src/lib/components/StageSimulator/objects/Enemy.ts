@@ -153,7 +153,7 @@ export class Enemy {
           .normalize();
         if (direction.x !== 0) {
           this.direction = direction.x;
-          this.skel.scale.x = this.direction;
+          this.skel.scale.x = direction.x < 0 ? -1 : 1;
         }
         const distance = this.mesh.position.distanceTo(this.targetPos);
         const adjustedSpeed = this.speed * delta * GameConfig.gridSize;

@@ -27,6 +27,8 @@
  * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
+import { Utils } from "../Utils";
+
 /** The base class for all attachments. */
 export abstract class Attachment {
   name: string;
@@ -80,7 +82,7 @@ export abstract class VertexAttachment extends Attachment {
    * @param offset The `worldVertices` index to begin writing values.
    * @param stride The number of `worldVertices` entries between the value pairs written. */
   computeWorldVertices(
-    slot: Slot,
+    slot,
     start: number,
     count: number,
     worldVertices: ArrayLike<number>,

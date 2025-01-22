@@ -51,33 +51,22 @@ export class AssetManager {
     success: (data: string) => void,
     error: (status: number, responseText: string) => void
   ) {
-    // try {
-    //   fetch(url)
-    //     .then((response) => {
-    //       if (!response.ok) {
-    //         throw new Error(`HTTP error, status = ${response.status}`);
-    //       }
-    //       return response.text();
-    //     })
-    //     .then((text) => success(text));
-    // } catch (e) {
-    //   error(404, "error");
-    // }
-    let request = new XMLHttpRequest();
-    request.overrideMimeType("text/html");
-    if (this.rawDataUris[url]) url = this.rawDataUris[url];
-    request.open("GET", url, true);
-    request.onload = () => {
-      if (request.status == 200) {
-        success(request.responseText);
-      } else {
-        error(request.status, request.responseText);
-      }
-    };
-    request.onerror = () => {
-      error(request.status, request.responseText);
-    };
-    request.send();
+    if (this.rawDataUris[url]) {
+      url = this.rawDataUris[url];
+    }
+    fetch(url, { headers: { "Content-Type": "text/html" } })
+      .then(async (response) => {
+        if (response.ok) {
+          const text = await response.text();
+          success(text);
+        } else {
+          const errorText = await response.text();
+          error(response.status, errorText);
+        }
+      })
+      .catch((err) => {
+        error(0, err.message || "Network error");
+      });
   }
 
   private downloadBinary(
@@ -85,33 +74,22 @@ export class AssetManager {
     success: (data: Uint8Array) => void,
     error: (status: number, responseText: string) => void
   ) {
-    // try {
-    //   fetch(url)
-    //     .then((response) => {
-    //       if (!response.ok) {
-    //         throw new Error(`HTTP error, status = ${response.status}`);
-    //       }
-    //       return response.arrayBuffer();
-    //     })
-    //     .then((data) => success(new Uint8Array(data)));
-    // } catch (e) {
-    //   error(404, "error");
-    // }
-    let request = new XMLHttpRequest();
-    if (this.rawDataUris[url]) url = this.rawDataUris[url];
-    request.open("GET", url, true);
-    request.responseType = "arraybuffer";
-    request.onload = () => {
-      if (request.status == 200) {
-        success(new Uint8Array(request.response as ArrayBuffer));
-      } else {
-        error(request.status, request.responseText);
-      }
-    };
-    request.onerror = () => {
-      error(request.status, request.responseText);
-    };
-    request.send();
+    if (this.rawDataUris[url]) {
+      url = this.rawDataUris[url];
+    }
+    fetch(url)
+      .then(async (response) => {
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          success(new Uint8Array(arrayBuffer));
+        } else {
+          const errorText = await response.text();
+          error(response.status, errorText);
+        }
+      })
+      .catch((err) => {
+        error(0, err.message || "Network error");
+      });
   }
 
   setRawDataURI(path: string, data: string) {
@@ -139,7 +117,10 @@ export class AssetManager {
           path
         ] = `Couldn't load binary ${path}: status ${status}, ${responseText}`;
         if (error)
-          error(path, `Couldn't load binary ${path}: status ${status}, ${responseText}`);
+          error(
+            path,
+            `Couldn't load binary ${path}: status ${status}, ${responseText}`
+          );
         this.toLoad--;
         this.loaded++;
       }
