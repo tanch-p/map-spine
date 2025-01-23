@@ -254,6 +254,8 @@ export class GameMap {
       },
     });
     texture = this.textureLoader.load("flag.png");
+	texture.colorSpace = THREE.SRGBColorSpace;
+
     texture.magFilter = THREE.NearestFilter; // Keeps pixel art sharp
     texture.minFilter = THREE.NearestFilter;
     GameConfig.sprites.set("flag", {
