@@ -3,7 +3,6 @@ import * as spine from "$lib/spine";
 import { Enemy } from "./Enemy";
 import {
   convertMovementConfig,
-  gameToPos,
   getVectorCoordinates,
 } from "$lib/functions/lib";
 import { Theta } from "./Theta";
@@ -25,6 +24,8 @@ export class GameMap {
   spineAssetManager: spine.AssetManager;
   textureLoader: THREE.TextureLoader;
   pathFinder: Theta;
+  maxWaitTime = 0;
+
   constructor(
     scene: THREE.Scene,
     config,
@@ -40,6 +41,7 @@ export class GameMap {
     this.pathFinder = new Theta(GameConfig.mazeLayout);
     this.textureLoader = new THREE.TextureLoader();
     this.tileManager = new TileManager();
+    this.maxWaitTime = this.getMaxWaitTime(config.routes);
     this.initTextures();
     // this.textureLoader.load("level_ro4_n_1_1.webp", (texture) => {
     //   texture.colorSpace = THREE.SRGBColorSpace; // Correct color space
@@ -92,6 +94,21 @@ export class GameMap {
   }
 
   initTextures() {
+    for (let i = 0; i <= this.maxWaitTime; i++) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 64;
+
+      const context = canvas.getContext("2d")!;
+      context.font = "20px Arial";
+      context.fillStyle = "white";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(i.toString(), 32, 32);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      GameConfig.sprites.set(i, { texture: texture });
+    }
     let texture;
     const shadow = this.textureLoader.load("sprite_shadow.png");
     GameConfig.sprites.set("shadow", { texture: shadow, config: null });
@@ -236,6 +253,12 @@ export class GameMap {
         uvOffsetY: 0.75,
       },
     });
+    texture = this.textureLoader.load("flag.png");
+    texture.magFilter = THREE.NearestFilter; // Keeps pixel art sharp
+    texture.minFilter = THREE.NearestFilter;
+    GameConfig.sprites.set("flag", {
+      texture: texture,
+    });
   }
 
   createTile(tileIndex: number, positionX: number, positionY: number) {
@@ -289,8 +312,7 @@ export class GameMap {
         const [tileName, heightType, mask, blackboard] = tiles[tileIndex];
         const group = this.tileManager.get(tileName, blackboard);
         const { x, y } = getVectorCoordinates({ row: rowIdx, col: colIdx });
-        console.log(x,y)
-        let z = 100; //elevation for everything if not -z things will get truncated
+        let z = 0; //elevation for everything if not -z things will get truncated
         switch (tileName) {
           case "tile_end":
             group.add(new StickBox(100, 100, 100, "blue").getMesh());
@@ -301,11 +323,11 @@ export class GameMap {
           case "tile_telin":
           case "tile_telout":
           case "tile_hole":
-            z = 50;
+            z = -50;
             break;
           case "tile_forbidden":
           case "tile_wall":
-            z = 120;
+            z = 20;
             break;
           default:
             break;
@@ -318,7 +340,7 @@ export class GameMap {
 
   addEnemy(action: any): void {
     const originalRoute = this.config.routes[action["routeIndex"]];
-    const route = convertMovementConfig(originalRoute);
+    const route = convertMovementConfig(structuredClone(originalRoute));
 
     // Create two geometries with different sizes
     const hitBoxGeo = new THREE.CircleGeometry(GameConfig.gridSize * 0.1, 32);
@@ -371,23 +393,29 @@ export class GameMap {
       parameters.depthTest = false;
       parameters.alphaTest = 0.001;
     });
+    console.log(
+      "height:",
+      skeletonMesh.skeleton.data.height,
+      "width:",
+      skeletonMesh.skeleton.data.width
+    );
     if (action.routeIndex === 8) {
-      this.spineScaleManager.addModel(group, skeletonMesh);
+      // this.spineScaleManager.addModel(group, skeletonMesh);
     }
     group.add(skeletonMesh);
     const size = new spine.Vector2(50, 100);
     const spriteMaterial = new THREE.SpriteMaterial({
-      transparent: true,
-      depthTest:false,
+      transparent: false,
+      depthTest: false,
       opacity: 0,
-      color: 0x000021
+      color: 0x000021,
     });
     const sprite = new THREE.Sprite(spriteMaterial);
     sprite.scale.set(size.x, size.y, 1);
-    sprite.position.z = 100;
-    sprite.userData.spine = skeletonMesh;
+    sprite.position.z = GameConfig.gridSize;
     skeletonMesh.add(sprite);
     const enemy = new Enemy(enemyData, route, group, skeletonMesh);
+    sprite.userData.enemy = enemy;
     this.objects.push(sprite);
     this.enemies.push(enemy);
     this.scene.add(group);
@@ -397,5 +425,19 @@ export class GameMap {
     for (const enemy of this.enemies.filter((e) => e.alive)) {
       enemy.update(deltaTime);
     }
+  }
+  getMaxWaitTime(routes) {
+    let maxTime = 0;
+    for (const route of routes) {
+      if (route.checkpoints) {
+        for (const cp of route.checkpoints) {
+          const { type, time } = cp;
+          if (type === "WAIT_FOR_SECONDS" && time > maxTime) {
+            maxTime = time;
+          }
+        }
+      }
+    }
+    return maxTime;
   }
 }

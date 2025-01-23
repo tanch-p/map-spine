@@ -10,7 +10,7 @@ export class StickBox {
       color: hexCode,
       // alphaMap: GameConfig.sprites.get(color).texture,
       transparent:true,
-      opacity:0.8
+      opacity:0.8,
     });
 
     // Stick dimensions
@@ -102,7 +102,6 @@ export class StickBox {
         stick.position.set(x, 0, zPos);
         this.group.add(stick);
         stick.renderOrder=-1;
-
       });
     };
 
@@ -111,6 +110,7 @@ export class StickBox {
     createHorizontalFrame(depth / 2); // Front frame
 
     // Add front plane
+    frontPlane.renderOrder=-1;
     this.group.add(frontPlane);
     this.group.position.set(0,0,z)
   }

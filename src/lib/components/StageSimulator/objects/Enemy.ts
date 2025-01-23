@@ -2,8 +2,13 @@ import * as THREE from "three";
 import * as spine from "$lib/spine";
 import { GameConfig } from "./GameConfig";
 import { getVectorCoordinates as getVectorCoordinates } from "$lib/functions/lib";
+import { GameManager } from "./GameManager";
+import { TextSprite } from "./TextSprite";
+import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
 
 export class Enemy {
+  private countdownTexture: THREE.CanvasTexture;
+  private countdownCanvas: HTMLCanvasElement;
   actions: any[];
   hp: number;
   speed: number;
@@ -22,8 +27,12 @@ export class Enemy {
   entryElapsedTime: number = 0;
   exit: boolean = false;
   exitElapsedTime: number = 0;
+  gameManager: GameManager;
+  pathGroup;
 
   constructor(data, route, mesh, skeletonMesh) {
+    this.timerText = null;
+    this.route = route;
     this.motionMode = route.motionMode;
     this.actions = this.getActions(route);
     this.mesh = mesh;
@@ -35,7 +44,13 @@ export class Enemy {
     this.skel.skeleton.color.r = 0.2;
     this.skel.skeleton.color.g = 0.2;
     this.skel.skeleton.color.b = 0.2;
-
+    this.gameManager = GameManager.getInstance();
+    this.pathGroup = this.visualisePath(
+      this.actions,
+      this.currentActionIndex,
+      this.route.startPosition
+    );
+    this.waitTimer = this.createCountdownSprite();
     const { x, y } = getVectorCoordinates(route.startPosition);
     this.mesh.position.set(x, y, GameConfig.baseZIndex);
     this.currentPos = new THREE.Vector3(x, y, GameConfig.baseZIndex);
@@ -70,15 +85,16 @@ export class Enemy {
       }
     }
 
-    const paths = GameConfig.pathFinder.findPath(
+    const endPaths = GameConfig.pathFinder.findPath(
       endCalcStartPos,
       route.endPosition
     );
+
     return [
       ...route.checkpoints.map((cp) => {
         return { ...cp, pathType: "cp" };
       }),
-      ...paths.slice(1).map(({ row, col }) => {
+      ...endPaths.slice(1).map(({ row, col }) => {
         return {
           type: "MOVE",
           time: 0.0,
@@ -138,6 +154,17 @@ export class Enemy {
     const { type, position, pathType, time, reachOffset } =
       this.actions[this.currentActionIndex];
 
+    if (this.selected) {
+      if (!this.pathOn) {
+        this.visualisePath(
+          this.actions,
+          this.currentActionIndex,
+          this.route.startPosition
+        );
+        this.pathOn = true;
+      }
+    }
+
     switch (type) {
       case "MOVE":
         if (!this.isMoving) {
@@ -174,14 +201,20 @@ export class Enemy {
 
       case "WAIT_FOR_SECONDS":
         if (this.waitElapsedTime === 0) {
+          this.mesh.add(this.waitTimer);
           this.state = "Idile";
           this.skel.state.setAnimation(0, "Idile", true);
           this.waitElapsedTime += delta;
         } else {
+          this.updateCountdownSprite(
+            this.waitTimer,
+            time - this.waitElapsedTime
+          );
           this.waitElapsedTime += delta;
         }
 
         if (this.waitElapsedTime >= time) {
+          this.mesh.remove(this.waitTimer);
           this.waitElapsedTime = 0;
           this.currentActionIndex++;
         }
@@ -218,5 +251,130 @@ export class Enemy {
   onDeath(): void {
     this.skel.state.setAnimation(0, "Die", false);
     this.exit = true;
+  }
+
+  showPath() {
+    this.gameManager.scene.add(this.pathGroup);
+  }
+  hidePath() {
+    this.gameManager.scene.remove(this.pathGroup);
+  }
+
+  visualisePath(paths, currentActionIndex, startPos) {
+    const remainingPaths = paths.filter((ele, i) => i >= currentActionIndex);
+    const returnGroup = new THREE.Group();
+    const lineGroup = new THREE.Group();
+    const movePaths = paths.filter(
+      (ele) => ele.type === "MOVE" || ele.type === "APPEAR_AT_POS"
+    );
+    for (let i = 0; i < movePaths.length; i++) {
+      const startCoordinates = movePaths?.[i - 1]?.position || startPos;
+      const startOffSet = i - 1 === -1 ? null : movePaths?.[i - 1].reachOffset;
+      const endCoordinates = movePaths[i].position;
+      const endOffset = movePaths?.[i].reachOffset;
+
+      const startPoint = getVectorCoordinates(startCoordinates, startOffSet);
+      const start = new THREE.Vector3(startPoint.x, startPoint.y, 0);
+      // Define start and end points
+      const endPoint = getVectorCoordinates(endCoordinates, endOffset);
+      const end = new THREE.Vector3(endPoint.x, endPoint.y, 0);
+
+      // Create a geometry and add the points
+      const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
+
+      // Create a material for the line
+      const material = new THREE.LineBasicMaterial({ color: 0xff0000 }); // Red line
+
+      // Create the line
+      const line = new THREE.Line(geometry, material);
+      line.position.z = 10;
+      lineGroup.add(line);
+    }
+    for (let i = 0; i < paths.length; i++) {
+      const { type, pathType, time, position, reachOffset } = paths[i];
+      const group = new THREE.Group();
+
+      switch (type) {
+        case "MOVE":
+          if (pathType === "cp") {
+            const texture = GameConfig.sprites.get("flag").texture;
+
+            const geometry = new THREE.CircleGeometry(
+              GameConfig.gridSize / 3,
+              32
+            );
+            const material = new THREE.MeshBasicMaterial({
+              map: texture,
+              transparent: true,
+            });
+            const circle = new THREE.Mesh(geometry, material);
+            const { x, y } = getVectorCoordinates(position, reachOffset);
+            circle.position.set(x, y, GameConfig.baseZIndex + 10);
+            group.add(circle);
+          }
+          break;
+        case "WAIT_FOR_SECONDS":
+          const geometry = new THREE.CircleGeometry(
+            GameConfig.gridSize / 5,
+            32
+          );
+          const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+          const circle = new THREE.Mesh(geometry, material);
+          const waitPosition = i === 0 ? startPos : paths[i - 1].position;
+          const { x, y } = getVectorCoordinates(waitPosition, reachOffset);
+          circle.renderOrder = 1;
+          const text = new TextSprite(time).get();
+          group.add(text);
+          group.add(circle);
+          group.position.set(x, y, GameConfig.baseZIndex + 15);
+          break;
+        default:
+          break;
+      }
+      returnGroup.add(group);
+    }
+    returnGroup.add(lineGroup);
+    return returnGroup;
+  }
+  createCountdownSprite = (text: string = "",): THREE.Sprite => {
+    const group = new THREE.Group();
+    const circleGeometry = new THREE.CircleGeometry(32, 32);
+    const circleMaterial = new THREE.MeshBasicMaterial({ color: 0xd1d1d1 });
+    const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+    const ringColor = parseInt(text) <= 10 ? 0xdc143c : 0xF08080
+    const ringGeometry = new THREE.RingGeometry(30, 32, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({ color: ringColor });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.position.z = 2;
+    const textGeometry = new TextGeometry(text, {
+      font: GameConfig.font,
+      size: 20,
+      depth: 1,
+      curveSegments: 12,
+      bevelEnabled: false,
+    });
+    textGeometry.computeBoundingBox();
+    const centerOffset =
+      -0.5 * (textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x);
+    const yOffset =
+      -0.5 * (textGeometry.boundingBox.max.y - textGeometry.boundingBox.min.y);
+    const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const mesh = new THREE.Mesh(textGeometry, textMaterial);
+    mesh.position.x = centerOffset;
+    mesh.position.y = yOffset;
+    group.position.set(
+      0,
+      this.skel.skeleton.data.height * 0.4 + GameConfig.gridSize / 5,
+      0
+    );
+    group.add(ring, circle, mesh);
+    return group;
+  };
+
+  updateCountdownSprite(mesh, timer: number) {
+    this.mesh.remove(mesh);
+    const newMesh = this.createCountdownSprite(timer.toFixed());
+    this.mesh.add(newMesh);
+    this.waitTimer = newMesh;
   }
 }
