@@ -112,7 +112,7 @@ export class Game {
 
     const loader = new FontLoader();
     new Promise((resolve) => {
-      loader.load("/fonts/helvetiker_regular.typeface.json", (font) => {
+      loader.load("/fonts/noto sans_regular.json", (font) => {
         resolve(font);
       });
     }).then((font) => (GameConfig.font = font));
